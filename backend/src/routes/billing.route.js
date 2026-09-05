@@ -3,13 +3,24 @@ import {
   generateBilling,
   listAllInvoices,
   getInvoice,
-  recordPayment
+  recordPayment,
+  listCustomerInvoices,
+  getCustomerInvoice
 } from '../controller/billing.controller.js';
 import { validateRecordPayment } from '../validation/billing.validator.js';
-import { verifyStaffToken, requireStaffRole } from '../middleware/auth.middleware.js';
+import { verifyStaffToken, verifyPortalToken, requireStaffRole } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
+// ==========================================
+// Customer Portal Invoice Endpoints
+// ==========================================
+router.get('/portal/invoices', verifyPortalToken, listCustomerInvoices);
+router.get('/portal/invoices/:id', verifyPortalToken, getCustomerInvoice);
+
+// ==========================================
+// Staff Billing Endpoints
+// ==========================================
 router.use(verifyStaffToken);
 
 // Generate hybrid billing from confirmed quotation

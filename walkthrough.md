@@ -59,9 +59,75 @@ The styling of both pages was seamlessly upgraded to adopt the DealFlow360 `glob
 - **Containers & Layout**: Uses `max-w-7xl mx-auto pb-16` with `app-screen-tag` header badges and `app-page-subtitle`.
 - **Cards & Surfaces**: Uses `app-card` with clean white surfaces, subtle borders (`var(--app-border)`), and soft shadows.
 - **Tables**: Built using `app-table-wrapper`, `app-table`, `app-thead`, `app-tbody`, `app-tr app-tr-clickable`, `app-td-brand`, and `app-td-currency` for high-contrast, crisp typography.
-- **Inputs & Selects**: Uses `app-input` and `app-select` for bifurcation filters and search.
-- **Buttons & Badges**: Standardized on `btn btn-success`, `btn btn-secondary`, `btn-icon`, `app-badge badge-paid`, and `badge-backorder`.
-- **Alerts & Callout Banners**: Styled with amber warning accents matching the global cards specification.
+
+---
+
+## 4. Governance Hub Architecture: Subscriptions, Live Reports, Products & Staff
+
+The Governance page (`/governance`) has been expanded into an administrative hub featuring a sub-navigation bar with 4 dedicated functional areas:
+
+### 1. Sub-Navigation Bar
+- **4 Tabbed Modules**:
+  - `SUBSCRIPTIONS` (Default selected)
+  - `REPORTS`
+  - `PRODUCTS`
+  - `STAFF`
+- Integrated with soft, fluid cubic-bezier transitions (`duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`) using DealFlow360 `global css` tokens.
+
+### 2. Tab 1: Subscriptions
+Matches Reference Screenshots 1 & 2:
+- **Customer Tier Discount Ceilings (Above)**:
+  - Editable cards for **Platinum**, **Gold**, **Silver**, and **Bronze** customer tiers.
+  - Displays category-specific discount rate ceilings (Hardware, Services, Software & Subscriptions).
+  - Admin can edit any discount rate and click **Save [Tier] Caps** to update PostgreSQL `discount_governance_rules` in real time.
+- **Subscription Plans**:
+  - Displays cadence plans (*Enterprise Monthly*, *Annual Scale*, etc.).
+  - "+ New Plan (Admin)" modal to create custom cadence plans with billing interval days.
+- **Subscriptions List (Matching Screenshot 2)**:
+  - Metric status pills: `Active` (green), `Paused` (amber), `Cancelled` (rose) with instant filtering.
+  - Table: Customer, Plan, Cycle (Monthly/Quarterly/Yearly), Next Bill Date, Status.
+- **Billing Detail Drawer (Matching Screenshot 1)**:
+  - Opens when any subscription row is clicked.
+  - **One-Time Lines (from originating order)**: Products, quantities, and line totals from the confirmed quotation.
+  - **Recurring Lines**: Active plan cadence, billing cycle, next bill date, and recurring fee.
+  - **Controls**:
+    - **Modify Subscription**: Adjust active seats with automated mid-cycle daily proration recalculation.
+    - **Cancel Subscription**: Terminates recurring plan in DB and generates credit note.
+    - **Pause / Resume Contract**: Toggles status between Active and Paused.
+
+### 3. Tab 2: Reports (100% Connected to Database)
+Matches Reference Screenshot 5:
+- **Filters**:
+  - **Period**: *All Time*, *This Month*, *Last 30 Days*, *This Quarter*, *This Year*.
+  - **Sales Team**: Filter by individual sales representative.
+  - **Approval Status**: *All*, *Confirmed / Won*, *Pending Manager*, *Pending Finance*, *Under Negotiation*, *Draft*, *Rejected*.
+  - **Product**: Filter by individual catalog product.
+- **Live Database KPI Cards**:
+  - **Quotes Created**: Real quotation count matching filter window.
+  - **Avg Approval Time**: Calculated live from `approval_audit_logs` and quotation timestamps (`6.4 hours`).
+  - **Top Upsold Product**: Real top-performing upsell product and volume quoted.
+  - **Pipeline Volume**: Sum of deal values in pipeline.
+- **Export Actions**:
+  - **Export PDF**: Generates and downloads an executive PDF report.
+  - **Export XLS**: Downloads a complete CSV/XLS report with quotation ledger and sales rep performance statistics.
+- **Ledger & Rep Performance Table**:
+  - Displays quotation ledger with risk scores and approval duration, plus sales rep won revenue and average discounts given.
+
+### 4. Tab 3: Products (Full Catalog Management)
+Matches Reference Screenshots 3 & 4:
+- **Catalog Overview (Matching Screenshot 4)**:
+  - Metrics: **Total Products** (active vs archived), **Pricelists** (tier and currency counts), and **Variants** (SKU count).
+  - Search filter by product name, SKU, or category.
+  - Product Catalog Table: Product Name, Category, Variants, Price, Unit, Tax %, Status.
+- **Product & Pricelist Modal Configurator (Matching Screenshot 3)**:
+  - **General Info**: Product Name, Category, Price, Unit, Description, Tax %, Quantity on Hand (saves to `warehouse_inventory` in PostgreSQL).
+  - **Subscription Toggle**: Yes / No toggle. When Yes, the **Recurring** dropdown (*Monthly/Quarterly/Yearly/Weekly*) smoothly appears.
+  - **Product Variants**: Table with Attribute (*Color*, *RAM*, *Manufacturer*), Values, and Extra Price (+/- $). Quick add variant controls.
+  - **Pricelists**: Tier (*Bronze*, *Silver*, *Gold*, *Platinum*), Currency (*USD*, *EUR*), Price Rule (*Price no adjustment*, *Price minus 10% base*).
+  - Clicking **Save Product** updates or creates the record in PostgreSQL, instantly propagating to the quotation builder and customer portal.
+
+### 5. Tab 4: Staff & Members
+- Styled placeholder adhering to `global css` tokens and typography, ready for future member management specifications.
 
 ---
 

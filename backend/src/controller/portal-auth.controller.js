@@ -206,6 +206,21 @@ export async function getPortalMe(req, res, next) {
         companyName: profile.company_name,
         contactName: profile.contact_name,
         customerTier: profile.customer_tier,
+        membershipStatus: profile.membership_status || 'active',
+        creditLimit: profile.credit_limit,
+        accountOwnerName: profile.account_owner_name,
+        accountOwnerEmail: profile.account_owner_email,
+        subscription: profile.subscription_id
+          ? {
+              id: profile.subscription_id,
+              status: profile.subscription_status || 'active',
+              planName: profile.plan_name,
+              cadence: profile.plan_cadence || 'monthly',
+              unitRecurringPrice: profile.unit_recurring_price,
+              nextBillingDate: profile.next_billing_date,
+              startDate: profile.subscription_start_date
+            }
+          : null,
         tenantId: profile.tenant_id,
         tenantName: profile.tenant_name,
         tenantSubdomain: profile.tenant_subdomain

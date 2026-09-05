@@ -18,9 +18,11 @@
   border-radius: var(--app-radius-xl);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .btn:disabled {
@@ -38,12 +40,13 @@
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--app-brand-red-hover);
-  box-shadow: 0 4px 12px 0 rgba(255, 59, 48, 0.45);
-  transform: translateY(-0.5px);
+  box-shadow: 0 4px 14px 0 rgba(255, 59, 48, 0.45);
+  transform: translateY(-1px) scale(1.01);
 }
 
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.97);
+  transition-duration: 0.1s;
 }
 
 /* Secondary Neutral Button */

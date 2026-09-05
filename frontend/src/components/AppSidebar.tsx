@@ -6,7 +6,6 @@ import {
   FileText,
   GitPullRequest,
   CheckCircle2,
-  Package,
   Truck,
   Receipt,
   Activity,
@@ -29,7 +28,6 @@ export const AppSidebar: React.FC = () => {
     { label: 'Quotations', path: '/quotations', icon: FileText },
     { label: 'RFQs & Inquiries', path: '/rfqs', icon: GitPullRequest },
     { label: 'Discount Approvals', path: '/approvals', icon: CheckCircle2, roles: ['admin', 'sales_manager', 'finance'] },
-    { label: 'Product Catalog', path: '/catalog', icon: Package },
     { label: 'Warehouses & Orders', path: '/fulfillment', icon: Truck },
     { label: 'Invoices & Billing', path: '/billing', icon: Receipt },
     { label: 'Deal Health Monitor', path: '/dealhealth', icon: Activity, roles: ['admin', 'sales_manager'] },
@@ -38,6 +36,7 @@ export const AppSidebar: React.FC = () => {
   const portalNavItems: NavItem[] = [
     { label: 'Portal Overview', path: '/portal', icon: UserCheck },
     { label: 'My Quotations', path: '/portal/quotations', icon: FileText },
+    { label: 'Invoices & Billing', path: '/portal/invoices', icon: Receipt },
     { label: 'Submit RFQ', path: '/portal/rfqs', icon: GitPullRequest },
   ];
 
@@ -55,6 +54,7 @@ export const AppSidebar: React.FC = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === '/portal' || item.path === '/dashboard'}
               className={({ isActive }) =>
                 `flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   isActive

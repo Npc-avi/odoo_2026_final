@@ -18,7 +18,6 @@ import { QuotationDetailPage } from '@/features/quotations/pages/QuotationDetail
 import { QuotationBuilderPage } from '@/features/quotations/pages/QuotationBuilderPage';
 import { RfqListPage } from '@/features/rfq/pages/RfqListPage';
 import { ApprovalInboxPage } from '@/features/approvals/pages/ApprovalInboxPage';
-import { CatalogPage } from '@/features/catalog/pages/CatalogPage';
 import { GovernanceRulesPage } from '@/features/catalog/pages/GovernanceRulesPage';
 import { ShipmentsPage } from '@/features/fulfillment/pages/ShipmentsPage';
 import { InvoiceListPage } from '@/features/billing/pages/InvoiceListPage';
@@ -30,6 +29,7 @@ import { CustomerPortalHome } from '@/features/portal/pages/CustomerPortalHome';
 import { CustomerQuotesPage } from '@/features/portal/pages/CustomerQuotesPage';
 import { CustomerQuoteDetailPage } from '@/features/portal/pages/CustomerQuoteDetailPage';
 import { CustomerRfqPage } from '@/features/portal/pages/CustomerRfqPage';
+import { CustomerInvoicesPage } from '@/features/portal/pages/CustomerInvoicesPage';
 
 export const router = createBrowserRouter([
   // 1. Public Marketing Landing Page
@@ -101,7 +101,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/catalog',
-        element: <CatalogPage />,
+        element: <Navigate to="/governance" replace />,
       },
       {
         path: '/governance',
@@ -149,6 +149,18 @@ export const router = createBrowserRouter([
       {
         path: '/portal/rfqs',
         element: <CustomerRfqPage />,
+      },
+      {
+        path: '/portal/invoices',
+        element: <CustomerInvoicesPage />,
+      },
+      {
+        path: '/portal/billing',
+        element: <CustomerInvoicesPage />,
+      },
+      {
+        path: '/portal/invoices/:id',
+        element: <InvoiceDetailPage />,
       },
     ],
   },

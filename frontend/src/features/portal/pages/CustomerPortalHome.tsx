@@ -1,21 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/features/auth/hook/useAuth';
 import { ScrambleCTAButton } from '@/components/ScrambleCTAButton';
-import { FileText, GitPullRequest, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { FileText, GitPullRequest, ShieldCheck, ArrowUpRight, Award, Sparkles, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { CustomerProfileModal } from '../components/CustomerProfileModal';
 
 export const CustomerPortalHome: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   return (
     <div className="space-y-12">
       {/* Welcome Hero Panel */}
       <div className="rounded-3xl border border-neutral-200 bg-white p-8 sm:p-12 lg:p-14 relative overflow-hidden shadow-sm">
         <div className="relative z-10 space-y-4 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>AUTHENTICATED CLIENT PORTAL // {user?.customerTier || 'GOLD'} TIER</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setShowProfileModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase cursor-pointer transition-colors shadow-xs group"
+              title="Click to view subscription and user details"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>AUTHENTICATED CLIENT PORTAL // {user?.customerTier || 'GOLD'} TIER</span>
+              <span className="text-neutral-400 group-hover:text-neutral-700 ml-1">&rarr; VIEW DETAILS</span>
+            </button>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-mono font-bold tracking-widest text-emerald-700 uppercase">
+              STATUS // {user?.membershipStatus || 'ACTIVE'}
+            </span>
           </div>
 
           <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-[#111111] uppercase tracking-tight leading-[1.05]">
@@ -25,6 +39,17 @@ export const CustomerPortalHome: React.FC = () => {
           <p className="text-xs sm:text-sm text-neutral-500 font-mono leading-relaxed">
             Review live quotations, submit targeted RFQ requests, and collaborate directly with {user?.tenantName || 'your sales team'}.
           </p>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowProfileModal(true)}
+              className="btn btn-secondary py-1.5 px-4 text-xs font-mono rounded-full inline-flex items-center gap-2 shadow-xs"
+            >
+              <Award className="w-3.5 h-3.5 text-[#ff3b30]" />
+              <span>View Account & Subscription Details</span>
+            </button>
+          </div>
         </div>
 
         {/* Subtle Watermark background */}
@@ -97,6 +122,12 @@ export const CustomerPortalHome: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Customer Profile & Subscription Modal */}
+      <CustomerProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </div>
   );
 };

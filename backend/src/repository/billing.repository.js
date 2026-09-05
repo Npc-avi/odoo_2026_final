@@ -6,6 +6,7 @@ import {
   CREATE_SUBSCRIPTION,
   UPDATE_SUBSCRIPTION_QUANTITY,
   CANCEL_SUBSCRIPTION,
+  UPDATE_SUBSCRIPTION_STATUS,
   LIST_INVOICES,
   GET_INVOICE_DETAILS,
   GET_INVOICE_ITEMS,
@@ -42,7 +43,21 @@ export async function getSubscriptions(client) {
 
 export async function getSubscriptionDetail(client, subscriptionId) {
   const result = await client.query(GET_SUBSCRIPTION_BY_ID, [subscriptionId]);
-  return result.rows[0] || null;
+  const sub = result.rows[0] || null;
+  if (!sub) return null;
+
+  // Retrieve originating quotation lines for billing detail breakdown
+  if (sub.quotation_id) {
+    const itemsRes = await client.query(LIST_QUOTATION_ITEMS_STAFF, [sub.quotation_id]);
+    const allItems = itemsRes.rows;
+    sub.oneTimeLines = allItems.filter(i => ['hardware', 'service'].includes(i.line_type));
+    sub.recurringLines = allItems.filter(i => i.line_type === 'subscription');
+  } else {
+    sub.oneTimeLines = [];
+    sub.recurringLines = [];
+  }
+
+  return sub;
 }
 
 /**
@@ -363,3 +378,24 @@ export async function markInvoicePaid(client, invoiceId, paidAt) {
   );
   return result.rows[0] || null;
 }
+
+export async function updateSubscriptionStatus(client, subscriptionId, status) {
+  const result = await client.query(UPDATE_SUBSCRIPTION_STATUS, [subscriptionId, status]);
+  const sub = result.rows[0] || null;
+  if (sub && sub.customer_id) {
+    await client.query(
+      `UPDATE customers SET membership_status = $1 WHERE id = $2;`,
+      [status, sub.customer_id]
+    ).catch(() => {});
+  }
+  return sub;
+}
+
+export async function updateCustomerTier(client, customerId, tier) {
+  const result = await client.query(
+    `UPDATE customers SET tier = $1 WHERE id = $2 RETURNING *;`,
+    [tier, customerId]
+  );
+  return result.rows[0] || null;
+}
+

@@ -19,9 +19,14 @@ export const CREATE_CATEGORY = `
 export const LIST_PRODUCTS_STAFF = `
   SELECT p.id, p.tenant_id, p.category_id, pc.name AS category_name,
          p.sku, p.name, p.description, p.item_type,
-         p.unit_cost, p.base_price, p.tax_rate, p.is_promoted, p.is_active, p.created_at
+         p.unit_cost, p.base_price, p.tax_rate, p.is_promoted, p.is_active, p.created_at,
+         COALESCE(SUM(wi.qty_on_hand), 0)::INT AS quantity_on_hand,
+         COUNT(DISTINCT pv.id)::INT AS variant_count
   FROM products p
   JOIN product_categories pc ON pc.id = p.category_id
+  LEFT JOIN warehouse_inventory wi ON wi.product_id = p.id
+  LEFT JOIN product_variants pv ON pv.product_id = p.id
+  GROUP BY p.id, pc.name
   ORDER BY p.name ASC;
 `;
 

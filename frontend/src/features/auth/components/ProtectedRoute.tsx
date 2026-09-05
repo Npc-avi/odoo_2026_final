@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hook/useAuth';
 import { AppNavbar } from '@/components/AppNavbar';
 import { UserRole } from '../auth.context';
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const { user, checkingAuth } = useAuth();
+  const location = useLocation();
 
   if (checkingAuth) {
     return (
@@ -50,8 +51,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
       {/* Top Floating Glassmorphic App Navbar */}
       <AppNavbar />
 
-      {/* Main Full-Bleed Content Stage matching Landing Page Margins & Max-Width */}
-      <main className="pt-24 sm:pt-28 pb-20 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1720px] mx-auto relative z-10 animate-fadeIn">
+      {/* Main Full-Bleed Content Stage with soft seamless route enter animation */}
+      <main
+        key={location.pathname}
+        className="pt-24 sm:pt-28 pb-20 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1720px] mx-auto relative z-10 animate-pageEnter"
+      >
         <Outlet />
       </main>
     </div>

@@ -34,6 +34,41 @@ export async function verifyDatabaseInitialization() {
         GRANT SELECT, INSERT, UPDATE, DELETE ON quotation_items TO app_role_customer_portal;
         GRANT UPDATE (status, promised_delivery_date, last_activity_at, updated_at) ON quotations TO app_role_customer_portal;
         GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_role_customer_portal;
+        GRANT SELECT ON invoices TO app_role_customer_portal;
+        GRANT SELECT ON invoice_items TO app_role_customer_portal;
+        GRANT SELECT ON subscriptions TO app_role_customer_portal;
+        GRANT SELECT ON subscription_plans TO app_role_customer_portal;
+
+        DROP POLICY IF EXISTS invoice_customer_policy ON invoices;
+        CREATE POLICY invoice_customer_policy ON invoices
+            FOR SELECT
+            USING (
+                tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+                AND (
+                    current_setting('app.current_actor_type', true) = 'staff'
+                    OR (
+                        current_setting('app.current_actor_type', true) = 'customer_portal'
+                        AND customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::UUID
+                    )
+                )
+            );
+
+        DROP POLICY IF EXISTS invoice_items_customer_policy ON invoice_items;
+        CREATE POLICY invoice_items_customer_policy ON invoice_items
+            FOR SELECT
+            USING (
+                tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+                AND (
+                    current_setting('app.current_actor_type', true) = 'staff'
+                    OR (
+                        current_setting('app.current_actor_type', true) = 'customer_portal'
+                        AND invoice_id IN (
+                            SELECT id FROM invoices
+                            WHERE customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::UUID
+                        )
+                    )
+                )
+            );
 
         DROP POLICY IF EXISTS quotation_customer_policy ON quotations;
         CREATE POLICY quotation_customer_policy ON quotations

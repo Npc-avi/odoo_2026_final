@@ -3,8 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { fetchQuotationByIdApi } from '../services/quotations.api';
 import { useSocket } from '@/context/socket.context';
 import { StatusBadge } from '@/components/StatusBadge';
-import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldAlert, FileText, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { exportQuotationPDF, exportQuotationDOCX } from '@/features/billing/utils/documentExport';
 
 export const QuotationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,9 +73,43 @@ export const QuotationDetailPage: React.FC = () => {
           </h1>
         </div>
 
-        {quotation && (
-          <StatusBadge status={quotation.status || 'draft'} />
-        )}
+        <div className="flex items-center gap-3">
+          {quotation && (
+            <>
+              <button
+                onClick={() => {
+                  try {
+                    exportQuotationPDF(quotation);
+                    toast.success('Quotation PDF downloaded!');
+                  } catch (e: any) {
+                    toast.error('Failed to export PDF: ' + e.message);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold hover:bg-blue-500/20 transition-colors"
+                title="Download PDF"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>EXPORT PDF</span>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await exportQuotationDOCX(quotation);
+                    toast.success('Quotation Word document downloaded!');
+                  } catch (e: any) {
+                    toast.error('Failed to export Word document: ' + e.message);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold hover:bg-cyan-500/20 transition-colors"
+                title="Download Word Document"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>EXPORT WORD (.DOCX)</span>
+              </button>
+              <StatusBadge status={quotation.status || 'draft'} />
+            </>
+          )}
+        </div>
       </div>
 
       {loading && (

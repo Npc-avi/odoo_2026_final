@@ -31,21 +31,30 @@ export function useDealHealth() {
       // Optimistically remove from state immediately
       setAlerts((prev) => prev.filter((a) => a.id !== id));
       await resolveDealHealthAlertApi(id);
-      toast.success('Alert resolved and removed from Deal Health.');
-      await loadAlerts();
+      // Silent sync in background without toggling loading state (prevents UI flicker)
+      const data = await fetchDealHealthAlertsApi();
+      setAlerts(data.alerts || data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to resolve alert.');
-      await loadAlerts();
+      const data = await fetchDealHealthAlertsApi();
+      setAlerts(data.alerts || data || []);
     }
   };
 
   const recordAction = async (id: string, action: string) => {
     try {
+      // Optimistically update action_status immediately for seamless instant feedback
+      setAlerts((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, action_status: action } : a))
+      );
       await recordDealHealthActionApi(id, action);
-      toast.success(`Action recorded: ${action}`);
-      await loadAlerts();
+      // Silent sync in background without flickering loading state
+      const data = await fetchDealHealthAlertsApi();
+      setAlerts(data.alerts || data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to record action.');
+      const data = await fetchDealHealthAlertsApi();
+      setAlerts(data.alerts || data || []);
     }
   };
 

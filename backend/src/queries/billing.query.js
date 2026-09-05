@@ -21,6 +21,11 @@ export const LIST_SUBSCRIPTIONS_STAFF = `
          s.plan_id, s.start_date, s.next_billing_date, s.end_date,
          s.unit_recurring_price, s.quantity, s.status, s.created_at,
          c.company_name AS customer_name,
+         c.contact_name AS customer_contact,
+         c.email AS customer_email,
+         c.tier AS customer_tier,
+         COALESCE(c.membership_status, 'active') AS membership_status,
+         c.credit_limit,
          sp.name AS plan_name, sp.cadence, sp.billing_interval_days, sp.allows_proration,
          p.name AS product_name
   FROM subscriptions s
@@ -36,7 +41,12 @@ export const GET_SUBSCRIPTION_BY_ID = `
          s.plan_id, s.start_date, s.next_billing_date, s.end_date,
          s.unit_recurring_price, s.quantity, s.status, s.created_at,
          sp.name AS plan_name, sp.cadence, sp.billing_interval_days, sp.allows_proration,
-         c.company_name AS customer_name
+         c.company_name AS customer_name,
+         c.contact_name AS customer_contact,
+         c.email AS customer_email,
+         c.tier AS customer_tier,
+         COALESCE(c.membership_status, 'active') AS membership_status,
+         c.credit_limit
   FROM subscriptions s
   JOIN subscription_plans sp ON sp.id = s.plan_id
   JOIN customers c ON c.id = s.customer_id
@@ -62,6 +72,14 @@ export const UPDATE_SUBSCRIPTION_QUANTITY = `
 export const CANCEL_SUBSCRIPTION = `
   UPDATE subscriptions
   SET status = 'canceled', end_date = CURRENT_DATE
+  WHERE id = $1
+  RETURNING *;
+`;
+
+export const UPDATE_SUBSCRIPTION_STATUS = `
+  UPDATE subscriptions
+  SET status = $2,
+      end_date = CASE WHEN $2 = 'canceled' THEN CURRENT_DATE ELSE end_date END
   WHERE id = $1
   RETURNING *;
 `;

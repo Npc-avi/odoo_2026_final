@@ -22,6 +22,19 @@ export interface AuthUser {
   customerId?: string;
   companyName?: string;
   customerTier?: string;
+  membershipStatus?: string;
+  creditLimit?: number;
+  accountOwnerName?: string;
+  accountOwnerEmail?: string;
+  subscription?: {
+    id: string;
+    status: string;
+    planName: string;
+    cadence: string;
+    unitRecurringPrice: number;
+    nextBillingDate: string;
+    startDate: string;
+  } | null;
 }
 
 export interface AuthContextType {
@@ -63,7 +76,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               customerId: portalData.portalUser.customerId,
               tenantId: portalData.portalUser.tenantId,
               tenantName: portalData.portalUser.tenantName,
-              customerTier: portalData.portalUser.customerTier
+              customerTier: portalData.portalUser.customerTier,
+              membershipStatus: portalData.portalUser.membershipStatus,
+              creditLimit: portalData.portalUser.creditLimit,
+              accountOwnerName: portalData.portalUser.accountOwnerName,
+              accountOwnerEmail: portalData.portalUser.accountOwnerEmail,
+              subscription: portalData.portalUser.subscription
             });
             setCheckingAuth(false);
             return;
@@ -165,7 +183,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           customerId: res.portalUser.customerId,
           tenantId: res.portalUser.tenantId,
           tenantName: res.portalUser.tenantName,
-          customerTier: res.portalUser.customerTier
+          customerTier: res.portalUser.customerTier,
+          membershipStatus: res.portalUser.membershipStatus,
+          creditLimit: res.portalUser.creditLimit,
+          accountOwnerName: res.portalUser.accountOwnerName,
+          accountOwnerEmail: res.portalUser.accountOwnerEmail,
+          subscription: res.portalUser.subscription
         });
       }
     } finally {

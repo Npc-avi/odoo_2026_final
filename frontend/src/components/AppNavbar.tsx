@@ -3,11 +3,13 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hook/useAuth';
 import { ScrambleCTAButton } from './ScrambleCTAButton';
 import { Menu, X, Shield, Building2, User as UserIcon } from 'lucide-react';
+import { CustomerProfileModal } from '@/features/portal/components/CustomerProfileModal';
 
 export const AppNavbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const isPortal = user?.role === 'customer_portal';
 
@@ -21,7 +23,6 @@ export const AppNavbar: React.FC = () => {
     { label: 'DASHBOARD', path: '/dashboard' },
     { label: 'QUOTATIONS', path: '/quotations' },
     { label: 'APPROVALS', path: '/approvals', roles: ['admin', 'sales_manager', 'finance', 'sales_rep'] },
-    { label: 'CATALOG', path: '/catalog' },
     { label: 'GOVERNANCE', path: '/governance', roles: ['admin', 'sales_manager'] },
     { label: 'FULFILLMENT', path: '/fulfillment' },
     { label: 'INVOICES', path: '/invoices' },
@@ -31,6 +32,7 @@ export const AppNavbar: React.FC = () => {
   const portalNavItems: NavItem[] = [
     { label: 'OVERVIEW', path: '/portal' },
     { label: 'MY QUOTATIONS', path: '/portal/quotations' },
+    { label: 'BILLING & INVOICES', path: '/portal/invoices' },
     { label: 'SUBMIT RFQ', path: '/portal/rfqs' },
   ];
 
@@ -91,11 +93,12 @@ export const AppNavbar: React.FC = () => {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  end={item.path === '/portal' || item.path === '/dashboard'}
                   className={({ isActive }) =>
-                    `py-1 px-2.5 rounded-full transition-all relative ${
+                    `py-1.5 px-3 rounded-full transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none cursor-pointer transform active:scale-[0.96] ${
                       isActive
-                        ? 'text-white bg-[#ff3b30] shadow-[0_0_12px_rgba(255,59,48,0.4)]'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                        ? 'text-white bg-[#ff3b30] shadow-[0_0_14px_rgba(255,59,48,0.45)] scale-[1.02]'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
                     }`
                   }
                 >
@@ -108,8 +111,13 @@ export const AppNavbar: React.FC = () => {
           {/* Right: User Profile Chip & Logout Button */}
           <div className="hidden sm:flex items-center space-x-3 shrink-0">
             {user && (
-              <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-right">
-                <div className="w-6 h-6 rounded-full bg-neutral-900 border border-white/20 flex items-center justify-center text-neutral-300">
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(true)}
+                title="View Account & Subscription"
+                className="flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-right cursor-pointer transition-all active:scale-[0.98] group"
+              >
+                <div className="w-6 h-6 rounded-full bg-neutral-900 border border-white/20 flex items-center justify-center text-neutral-300 group-hover:text-[#ff3b30] group-hover:border-[#ff3b30]/50 transition-colors">
                   <UserIcon className="w-3.5 h-3.5" />
                 </div>
                 <div className="text-left">
@@ -117,10 +125,10 @@ export const AppNavbar: React.FC = () => {
                     {user.fullName || user.email.split('@')[0]}
                   </div>
                   <div className="text-[8px] font-mono text-[#ff3b30] uppercase leading-none font-bold">
-                    {user.role.replace('_', ' ')}
+                    {user.customerTier ? `${user.customerTier} TIER` : user.role.replace('_', ' ')}
                   </div>
                 </div>
-              </div>
+              </button>
             )}
 
             <ScrambleCTAButton
@@ -166,11 +174,12 @@ export const AppNavbar: React.FC = () => {
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    end={item.path === '/portal' || item.path === '/dashboard'}
                     onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `py-2.5 px-3 rounded-xl flex items-center justify-between transition-colors ${
+                      `py-2.5 px-3.5 rounded-xl flex items-center justify-between transition-all duration-200 ease-out active:scale-[0.98] ${
                         isActive
-                          ? 'bg-[#ff3b30] text-white'
+                          ? 'bg-[#ff3b30] text-white shadow-md'
                           : 'text-neutral-400 hover:text-white hover:bg-white/5'
                       }`
                     }
@@ -198,6 +207,12 @@ export const AppNavbar: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Customer Profile & Subscription Modal */}
+      <CustomerProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
     </header>
   );
 };

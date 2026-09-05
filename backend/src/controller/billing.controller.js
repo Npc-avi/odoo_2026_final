@@ -7,6 +7,8 @@ import {
   generateBillingFromQuotation,
   adjustSubscriptionSeats,
   cancelSubscriptionContract,
+  updateSubscriptionStatus,
+  updateCustomerTier,
   getInvoices,
   getInvoiceDetail,
   markInvoicePaid
@@ -125,6 +127,44 @@ export async function cancelSubscription(req, res, next) {
   }
 }
 
+export async function updateStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const result = await withTenantContext(req.actor, async (client) => {
+      return updateSubscriptionStatus(client, id, status);
+    });
+
+    return res.status(200).json({
+      message: `Subscription status updated to ${status}.`,
+      subscription: result
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateCustomerTierHandler(req, res, next) {
+  try {
+    const { customerId } = req.params;
+    const { tier } = req.body;
+    if (!['Bronze', 'Silver', 'Gold', 'Platinum'].includes(tier)) {
+      return res.status(400).json({ message: 'Invalid customer tier. Must be Bronze, Silver, Gold, or Platinum.' });
+    }
+
+    const customer = await withTenantContext(req.actor, async (client) => {
+      return updateCustomerTier(client, customerId, tier);
+    });
+
+    return res.status(200).json({
+      message: `Customer tier updated to ${tier}.`,
+      customer
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Invoices
 export async function listAllInvoices(req, res, next) {
   try {
@@ -178,6 +218,99 @@ export async function recordPayment(req, res, next) {
       message: 'Payment recorded successfully. Invoice marked as paid.',
       invoice
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ============================================================================
+// Customer Portal Specific Invoice Endpoints
+// ============================================================================
+
+export async function listCustomerInvoices(req, res, next) {
+  try {
+    const customerId = req.actor.customerId;
+    const invoices = await withTenantContext(req.actor, async (client) => {
+      const result = await client.query(`
+        SELECT i.id, i.tenant_id, i.quotation_id, i.customer_id, i.invoice_number,
+               i.invoice_type, i.status, i.subtotal_amount, i.tax_amount, i.total_amount,
+               i.due_date, i.issued_at, i.paid_at,
+               c.company_name AS customer_name,
+               q.quotation_code, q.status AS quotation_status
+        FROM invoices i
+        JOIN customers c ON c.id = i.customer_id
+        LEFT JOIN quotations q ON q.id = i.quotation_id
+        WHERE i.customer_id = $1
+        ORDER BY i.issued_at DESC
+      `, [customerId]);
+      return result.rows;
+    });
+    return res.status(200).json({ invoices });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCustomerInvoice(req, res, next) {
+  try {
+    const { id } = req.params;
+    const customerId = req.actor.customerId;
+    const invoice = await withTenantContext(req.actor, async (client) => {
+      const headerRes = await client.query(`
+        SELECT i.id, i.tenant_id, i.quotation_id, i.customer_id, i.invoice_number,
+               i.invoice_type, i.status, i.subtotal_amount, i.tax_amount, i.total_amount,
+               i.due_date, i.issued_at, i.paid_at,
+               c.company_name AS customer_name, c.email AS customer_email
+        FROM invoices i
+        JOIN customers c ON c.id = i.customer_id
+        WHERE (i.id::text = $1 OR UPPER(i.invoice_number) = UPPER($1))
+          AND i.customer_id = $2
+      `, [id, customerId]);
+
+      if (!headerRes.rows[0]) return null;
+      const inv = headerRes.rows[0];
+
+      const itemsRes = await client.query(`
+        SELECT id, invoice_id, quotation_item_id, description, item_type,
+               quantity, unit_price, line_total, is_prorated, proration_start, proration_end
+        FROM invoice_items
+        WHERE invoice_id = $1
+        ORDER BY id ASC
+      `, [inv.id]);
+
+      let quotation = null;
+      if (inv.quotation_id) {
+        const qRes = await client.query(`
+          SELECT id, quotation_code, status, total_amount, issued_at
+          FROM quotations
+          WHERE id = $1 AND customer_id = $2
+        `, [inv.quotation_id, customerId]);
+        if (qRes.rows[0]) {
+          const qItemsRes = await client.query(`
+            SELECT qi.id, qi.description, qi.quantity, qi.unit_price, qi.applied_discount_pct, qi.line_total,
+                   p.name AS product_name, p.sku
+            FROM quotation_items qi
+            LEFT JOIN products p ON p.id = qi.product_id
+            WHERE qi.quotation_id = $1
+          `, [inv.quotation_id]);
+          quotation = { ...qRes.rows[0], items: qItemsRes.rows };
+        }
+      }
+
+      return {
+        ...inv,
+        items: itemsRes.rows,
+        quotation
+      };
+    });
+
+    if (!invoice) {
+      const err = new Error('Invoice not found.');
+      err.status = 404;
+      return next(err);
+    }
+
+    return res.status(200).json({ invoice, quotation: invoice.quotation });
   } catch (err) {
     next(err);
   }

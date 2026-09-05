@@ -16,6 +16,7 @@ import billingRoutes from './routes/billing.route.js';
 import dealhealthRoutes from './routes/dealhealth.route.js';
 import notificationRoutes from './routes/notification.route.js';
 import reportingRoutes from './routes/reporting.route.js';
+import governanceRoutes from './routes/governance.route.js';
 
 import { verifyStaffToken } from './middleware/auth.middleware.js';
 import { withTenantContext } from './middleware/tenant-context.middleware.js';
@@ -113,6 +114,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/dealhealth', dealhealthRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reporting', reportingRoutes);
+app.use('/api/governance', governanceRoutes);
 
 // 404 Catch-All
 app.use((req, res, next) => {

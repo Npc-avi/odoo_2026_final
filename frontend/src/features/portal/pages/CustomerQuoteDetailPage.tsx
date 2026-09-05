@@ -28,9 +28,12 @@ import {
   AlertCircle,
   RefreshCw,
   ShoppingBag,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { useSocket } from '@/context/socket.context';
 import { toast } from 'react-toastify';
+import { exportQuotationPDF, exportQuotationDOCX } from '@/features/billing/utils/documentExport';
 
 export const CustomerQuoteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -342,7 +345,42 @@ export const CustomerQuoteDetailPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {quotation && (
+            <>
+              <button
+                onClick={() => {
+                  try {
+                    exportQuotationPDF(quotation);
+                    toast.success('Proposal PDF downloaded!');
+                  } catch (e: any) {
+                    toast.error('Failed to generate PDF: ' + e.message);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold hover:bg-blue-500/20 transition-colors"
+                title="Download Proposal PDF"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>PDF</span>
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await exportQuotationDOCX(quotation);
+                    toast.success('Proposal Word document (.docx) downloaded!');
+                  } catch (e: any) {
+                    toast.error('Failed to generate Word document: ' + e.message);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold hover:bg-cyan-500/20 transition-colors"
+                title="Download Proposal Word (.docx)"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>WORD</span>
+              </button>
+            </>
+          )}
+
           <span
             className={`px-4 py-1.5 rounded-full font-mono text-xs font-bold tracking-wide shadow-sm border ${
               isConfirmed

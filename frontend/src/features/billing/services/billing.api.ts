@@ -50,6 +50,15 @@ export async function recordInvoicePaymentApi(
   }
 }
 
+export async function recordPaymentApi(invoiceId: string, payload: any = {}) {
+  try {
+    const res = await billingApi.post(`/invoices/${invoiceId}/pay`, payload);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to record invoice payment.' };
+  }
+}
+
 export async function fetchBillableQuotationsApi() {
   try {
     const res = await quotationsApi.get('/');
@@ -57,5 +66,23 @@ export async function fetchBillableQuotationsApi() {
     return all.filter((q: any) => ['confirmed', 'shipped', 'delivered'].includes(q.status));
   } catch (error: any) {
     throw error.response?.data || { message: 'Failed to fetch billable orders.' };
+  }
+}
+
+export async function fetchPortalInvoicesApi() {
+  try {
+    const res = await billingApi.get('/portal/invoices');
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch portal invoices.' };
+  }
+}
+
+export async function fetchPortalInvoiceByIdApi(id: string) {
+  try {
+    const res = await billingApi.get(`/portal/invoices/${id}`);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: `Failed to fetch invoice ${id}.` };
   }
 }

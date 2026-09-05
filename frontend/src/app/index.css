@@ -31,6 +31,38 @@
   }
 }
 
+/* Page & View Smooth Seamless Transitions */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pageEnter {
+  animation: pageEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes softFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: softFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
 /* Infinite Marquee Animation */
 @keyframes marquee {
   0% {

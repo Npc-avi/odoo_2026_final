@@ -5,7 +5,9 @@ import {
   listAllSubscriptions,
   getSubscription,
   adjustSeats,
-  cancelSubscription
+  cancelSubscription,
+  updateStatus,
+  updateCustomerTierHandler
 } from '../controller/billing.controller.js';
 import {
   validateCreateSubscriptionPlan,
@@ -25,6 +27,10 @@ router.post('/plans', requireStaffRole('admin', 'sales_manager', 'finance'), val
 router.get('/', listAllSubscriptions);
 router.get('/:id', getSubscription);
 router.patch('/:id/adjust', validateAdjustSubscription, adjustSeats);
+router.patch('/:id/status', updateStatus);
 router.post('/:id/cancel', cancelSubscription);
+
+// Customer Tier modification
+router.patch('/customer/:customerId/tier', requireStaffRole('admin', 'sales_manager'), updateCustomerTierHandler);
 
 export default router;

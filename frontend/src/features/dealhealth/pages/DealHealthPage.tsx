@@ -36,6 +36,9 @@ export const DealHealthPage: React.FC = () => {
 
   // Active filter tab: 'all' | 'stalled_deal' | 'discount_anomaly' | 'delivery_slippage' | 'escalated_to_admin'
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  // Seamless transition tracking for soft exit on resolution and soft entry on escalation
+  const [resolvingAlertIds, setResolvingAlertIds] = useState<Set<string>>(new Set());
+  const [escalatingAlertIds, setEscalatingAlertIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAlerts();
@@ -107,14 +110,31 @@ export const DealHealthPage: React.FC = () => {
   };
 
   const handleEscalateToAdmin = async (alertId: string) => {
-    await recordAction(alertId, 'Escalated to Admin');
+    setEscalatingAlertIds((prev) => new Set(prev).add(alertId));
     toast.warn('Deal escalated to Administrator for executive review.');
+    await recordAction(alertId, 'Escalated to Admin');
+    setTimeout(() => {
+      setEscalatingAlertIds((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+    }, 400);
   };
 
-  // When Admin resolves an escalation, it is completely removed from the dashboard for everyone
+  // When Admin resolves an escalation, softly glide the row out before purging from state
   const handleAdminResolve = async (alertId: string) => {
-    await resolveAlert(alertId);
+    // Initiate soft slide and fade departure
+    setResolvingAlertIds((prev) => new Set(prev).add(alertId));
     toast.success('Admin resolved this deal! Removed from Deal Health everywhere.');
+    setTimeout(async () => {
+      await resolveAlert(alertId);
+      setResolvingAlertIds((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+    }, 350);
   };
 
   const handleBatchEscalateToAdmin = async () => {
@@ -125,10 +145,19 @@ export const DealHealthPage: React.FC = () => {
       toast.info('No pending flagged deals requiring escalation to Admin.');
       return;
     }
+    const ids = pending.map((a) => a.id);
+    setEscalatingAlertIds((prev) => new Set([...prev, ...ids]));
+    toast.success(`Escalated ${pending.length} flagged deals to System Administrator.`);
     for (const a of pending) {
       await recordAction(a.id, 'Escalated to Admin');
     }
-    toast.success(`Escalated ${pending.length} flagged deals to System Administrator.`);
+    setTimeout(() => {
+      setEscalatingAlertIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, 400);
   };
 
   const handleBatchAdminResolve = async () => {
@@ -139,10 +168,19 @@ export const DealHealthPage: React.FC = () => {
       toast.info('No active Admin escalations to resolve.');
       return;
     }
-    for (const a of adminEscalated) {
-      await resolveAlert(a.id);
-    }
+    const ids = adminEscalated.map((a) => a.id);
+    setResolvingAlertIds((prev) => new Set([...prev, ...ids]));
     toast.success(`Resolved ${adminEscalated.length} escalated deals. Purged from Deal Health.`);
+    setTimeout(async () => {
+      for (const a of adminEscalated) {
+        await resolveAlert(a.id);
+      }
+      setResolvingAlertIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, 350);
   };
 
   const handleBatchNudge = async () => {
@@ -153,10 +191,10 @@ export const DealHealthPage: React.FC = () => {
       toast.info('All active deals have already been nudged.');
       return;
     }
+    toast.success(`Nudge reminders sent for ${unnudged.length} flagged deals.`);
     for (const a of unnudged) {
       await recordAction(a.id, 'Nudge sent');
     }
-    toast.success(`Nudge reminders sent for ${unnudged.length} flagged deals.`);
   };
 
   // Format date: "Aug 24", "Aug 25", "Sep 5"
@@ -412,9 +450,18 @@ export const DealHealthPage: React.FC = () => {
                   filteredAlerts.map((al) => {
                     const actionTaken = al.action_status || 'Pending Review';
                     const isEscalatedToAdmin = actionTaken === 'Escalated to Admin';
+                    const isResolving = resolvingAlertIds.has(al.id);
+                    const isEscalating = escalatingAlertIds.has(al.id);
 
                     return (
-                      <tr key={al.id} className="app-tr group">
+                      <tr
+                        key={al.id}
+                        className={`app-tr group transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                          isResolving
+                            ? 'opacity-0 -translate-x-4 scale-[0.98] pointer-events-none bg-emerald-50/70'
+                            : 'opacity-100 translate-x-0 scale-100'
+                        }`}
+                      >
                         {/* Deal Column: Customer and Quotation code */}
                         <td className="app-td">
                           <div>
@@ -423,7 +470,7 @@ export const DealHealthPage: React.FC = () => {
                             </div>
                             <Link
                               to={`/quotations/${al.quotation_id}`}
-                              className="inline-flex items-center gap-1 font-mono text-xs text-[#ff3b30] hover:underline mt-0.5"
+                              className="inline-flex items-center gap-1 font-mono text-xs text-[#ff3b30] hover:underline mt-0.5 transition-colors duration-200"
                             >
                               <span>{al.quotation_code || 'View Quote'}</span>
                               <ExternalLink className="w-3 h-3" />
@@ -449,7 +496,7 @@ export const DealHealthPage: React.FC = () => {
                         {/* Severity Badge */}
                         <td className="app-td whitespace-nowrap">
                           <span
-                            className={`app-badge ${
+                            className={`app-badge transition-colors duration-300 ease-out ${
                               al.severity === 'critical'
                                 ? 'badge-backorder'
                                 : al.severity === 'medium'
@@ -461,12 +508,12 @@ export const DealHealthPage: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* Action Column: PERFECT ROUND PILL BADGE & BUTTONS (NO WRAPPING) */}
+                        {/* Action Column: PERFECT ROUND PILL BADGE & BUTTONS WITH SEAMLESS TRANSITIONS */}
                         <td className="app-td app-td-right min-w-[320px] whitespace-nowrap">
                           <div className="inline-flex items-center gap-2.5 justify-end shrink-0">
-                            {/* PERFECT ROUND PILL STATUS BADGE */}
+                            {/* PERFECT ROUND PILL STATUS BADGE WITH SMOOTH EASE */}
                             <span
-                              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase whitespace-nowrap shrink-0 leading-none shadow-xs border transition-all ${
+                              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase whitespace-nowrap shrink-0 leading-none shadow-xs border transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                                 isEscalatedToAdmin
                                   ? 'bg-rose-50 border-rose-300 text-rose-800 ring-1 ring-rose-200'
                                   : actionTaken === 'Nudge sent'
@@ -492,7 +539,7 @@ export const DealHealthPage: React.FC = () => {
                             {/* Row Action Trigger: Nudge Rep */}
                             <button
                               onClick={() => handleNudge(al.id, al.assigned_rep_name)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all cursor-pointer whitespace-nowrap shrink-0 active:scale-95 shadow-xs"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-mono font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all duration-200 ease-out cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-[0.97] shadow-xs"
                               title="Send nudge to sales rep"
                             >
                               <Send className="w-3 h-3" />
@@ -503,25 +550,26 @@ export const DealHealthPage: React.FC = () => {
                             {!isAdmin ? (
                               <button
                                 onClick={() => handleEscalateToAdmin(al.id)}
-                                disabled={isEscalatedToAdmin}
-                                className={`inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 active:scale-95 shadow-xs ${
+                                disabled={isEscalatedToAdmin || isEscalating}
+                                className={`inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer whitespace-nowrap shrink-0 shadow-xs ${
                                   isEscalatedToAdmin
                                     ? 'bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed'
-                                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-300'
+                                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 hover:scale-[1.03] active:scale-[0.97] border border-rose-300'
                                 }`}
                                 title="Escalate this deal to System Administrator"
                               >
-                                <span>{isEscalatedToAdmin ? 'Escalated' : 'Escalate to Admin'}</span>
+                                <span>{isEscalatedToAdmin ? 'Escalated' : isEscalating ? 'Escalating...' : 'Escalate to Admin'}</span>
                               </button>
                             ) : isEscalatedToAdmin ? (
                               /* Admin Resolution Button: ONLY shown if escalated to admin. Resolves & purges deal everywhere */
                               <button
                                 onClick={() => handleAdminResolve(al.id)}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all cursor-pointer whitespace-nowrap shrink-0 active:scale-95"
+                                disabled={isResolving}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer whitespace-nowrap shrink-0 hover:scale-[1.03] active:scale-[0.97]"
                                 title="Admin Resolution: settles escalated deal and removes it from Deal Health everywhere"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Admin Resolve</span>
+                                <span>{isResolving ? 'Resolving...' : 'Admin Resolve'}</span>
                               </button>
                             ) : null}
                           </div>
@@ -541,7 +589,7 @@ export const DealHealthPage: React.FC = () => {
         {!isAdmin ? (
           <button
             onClick={handleBatchEscalateToAdmin}
-            className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:brightness-105 active:scale-95"
+            className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
             style={{ backgroundColor: '#f87171', color: '#18181b' }}
           >
             Escalate to Admin
@@ -549,7 +597,7 @@ export const DealHealthPage: React.FC = () => {
         ) : escalatedToAdminAlerts.length > 0 ? (
           <button
             onClick={handleBatchAdminResolve}
-            className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:brightness-105 active:scale-95 bg-emerald-600 text-white"
+            className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] bg-emerald-600 text-white"
           >
             Admin Resolve Escalations ({escalatedToAdminAlerts.length})
           </button>
@@ -557,7 +605,7 @@ export const DealHealthPage: React.FC = () => {
 
         <button
           onClick={handleBatchNudge}
-          className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:brightness-105 active:scale-95"
+          className="px-6 py-2.5 rounded-full font-mono font-bold text-xs uppercase tracking-wider transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
           style={{ backgroundColor: '#60a5fa', color: '#0f172a' }}
         >
           Nudge Reps
