@@ -7,6 +7,7 @@ import { router } from './app/app.route';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './app/index.css';
+import './global css/index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

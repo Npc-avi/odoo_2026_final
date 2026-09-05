@@ -20,13 +20,12 @@ export const AppNavbar: React.FC = () => {
   const staffNavItems: NavItem[] = [
     { label: 'DASHBOARD', path: '/dashboard' },
     { label: 'QUOTATIONS', path: '/quotations' },
-    { label: 'RFQS', path: '/rfqs' },
     { label: 'APPROVALS', path: '/approvals', roles: ['admin', 'sales_manager', 'finance', 'sales_rep'] },
     { label: 'CATALOG', path: '/catalog' },
     { label: 'GOVERNANCE', path: '/governance', roles: ['admin', 'sales_manager'] },
     { label: 'FULFILLMENT', path: '/fulfillment' },
-    { label: 'BILLING', path: '/billing' },
-    { label: 'DEAL HEALTH', path: '/dealhealth', roles: ['admin', 'sales_manager'] },
+    { label: 'INVOICES', path: '/invoices' },
+    { label: 'DEAL HEALTH', path: '/dealhealth', roles: ['admin', 'sales_manager', 'finance'] },
   ];
 
   const portalNavItems: NavItem[] = [

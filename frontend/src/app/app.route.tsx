@@ -22,6 +22,7 @@ import { CatalogPage } from '@/features/catalog/pages/CatalogPage';
 import { GovernanceRulesPage } from '@/features/catalog/pages/GovernanceRulesPage';
 import { ShipmentsPage } from '@/features/fulfillment/pages/ShipmentsPage';
 import { InvoiceListPage } from '@/features/billing/pages/InvoiceListPage';
+import { InvoiceDetailPage } from '@/features/billing/pages/InvoiceDetailPage';
 import { DealHealthPage } from '@/features/dealhealth/pages/DealHealthPage';
 
 // Customer Portal Pages
@@ -109,6 +110,14 @@ export const router = createBrowserRouter([
       {
         path: '/fulfillment',
         element: <ShipmentsPage />,
+      },
+      {
+        path: '/invoices',
+        element: <InvoiceListPage />,
+      },
+      {
+        path: '/invoices/:id',
+        element: <InvoiceDetailPage />,
       },
       {
         path: '/billing',

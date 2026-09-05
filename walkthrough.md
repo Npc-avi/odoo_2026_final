@@ -1,0 +1,106 @@
+# Walkthrough: Invoices List, Detail Page & Document Export
+
+We have completed the requested changes matching the reference screenshots:
+1. Removed the **RFQS** page from the top navigation bar.
+2. Renamed **BILLING** to **INVOICES** (`/invoices`) in the navigation header.
+3. Created the **Invoices (List)** page according to the reference photo with status pills and bifurcation filters.
+4. Created the **Invoice Detail** page (`/invoices/:id`) featuring the 4-step pipeline stepper, quotation specifications, line items breakdown, warehouse delivery records, and payment recording.
+5. Added client-side export libraries (**`jspdf`**, **`jspdf-autotable`**, **`docx`**, **`file-saver`**) allowing instant one-click download as **PDF** or Microsoft Word (**`.docx`**).
+
+---
+
+## 1. Changes Implemented
+
+### Top Navigation (`AppNavbar.tsx`)
+- Removed `{ label: 'RFQS', path: '/rfqs' }` from `staffNavItems`.
+- Changed `{ label: 'BILLING', path: '/billing' }` to `{ label: 'INVOICES', path: '/invoices' }`.
+
+### Invoices List Page (`InvoiceListPage.tsx`)
+Matches Reference Screenshot 1:
+- **Header**: `Invoices (List)` with subtitle: *"Every invoice generated from one-time and recurring contracts"*.
+- **Status Count Pills**:
+  - `4 Unpaid` (rose pill) & `21 Paid` (emerald pill).
+  - Clicking either pill dynamically toggles filtering by Unpaid, Paid, or All.
+- **Bifurcation Controls**:
+  - **Customer Name Bifurcation**: Filter dropdown containing all distinct customer accounts (*Acme Corp*, *Zenith Co*, *Nova Retail*, *Wayne Enterprises*, *Stark Industries*, *Cyberdyne Systems*, *Initech Corporation*).
+  - **Amount Range Bifurcation**: Range filter (*All*, *< $1,000*, *$1,000 – $5,000*, *$5,000 – $10,000*, *> $10,000*).
+  - Search bar for instant text matching on Invoice # and Client name.
+- **Table Columns**:
+  - `Invoice #` | `Customer` | `Amount` | `Status` | `Due Date`
+  - Formatted like the screenshot (e.g. `INV-1042`, `Acme Corp`, `$2,730`, `Unpaid`, `Sep 10`).
+  - Clicking any row smoothly navigates to that invoice's detail page.
+- **Bottom Callout Banner**:
+  - *"Click an invoice row to open its full payment and delivery reconciliation detail."*
+
+### Invoice Detail Page (`InvoiceDetailPage.tsx`)
+Matches Reference Screenshot 2:
+- **Header**: `Invoice Detail: INV-XXXX (Customer Name)` with subtitle *"Opened by clicking a row on the Invoices list"*.
+- **Visual Progress Pipeline Stepper**:
+  - `Order Confirmed` (Green checkmark node) &rarr; `Shipped` (Green checkmark node) &rarr; `Invoiced` (Blue active glowing node) &rarr; `Paid` (Dynamic state node).
+- **Contract Invoices Table**:
+  - Displays primary invoice (`INV-1042`) and recurring contract charges (`INV-1043 (Recurring)`).
+- **Quotation Details & Line Items Breakdown**:
+  - Origin Quotation code, customer tier, and assigned account rep.
+  - Complete line item table: Product / Description, Line Type, Quantity, Unit Price, Applied Discount %, Line Total.
+  - Reconciled warehouse shipment orders (warehouse name, shipment tracking code, shipping cost).
+  - Financial reconciliation: Subtotal, Tax (8%), Grand Total.
+- **Action Buttons**:
+  - **Record Payment**: Calls `/api/billing/invoices/:id/pay`, settles the invoice as PAID, and updates the stepper and ledger in real time.
+  - **Download PDF**: Generates a high-resolution, branded PDF invoice and quotation statement with `jspdf` and `jspdf-autotable`.
+  - **Download Word (.docx)**: Generates a formatted Microsoft Word document with `docx` and `file-saver`.
+- **Bottom Callout Banner**:
+  - *"Partial invoicing stays reconciled with partial delivery, nothing is billed before it ships."*
+
+---
+
+## 2. Global CSS Design System Styling Applied
+
+The styling of both pages was seamlessly upgraded to adopt the DealFlow360 `global css` system:
+- **Containers & Layout**: Uses `max-w-7xl mx-auto pb-16` with `app-screen-tag` header badges and `app-page-subtitle`.
+- **Cards & Surfaces**: Uses `app-card` with clean white surfaces, subtle borders (`var(--app-border)`), and soft shadows.
+- **Tables**: Built using `app-table-wrapper`, `app-table`, `app-thead`, `app-tbody`, `app-tr app-tr-clickable`, `app-td-brand`, and `app-td-currency` for high-contrast, crisp typography.
+- **Inputs & Selects**: Uses `app-input` and `app-select` for bifurcation filters and search.
+- **Buttons & Badges**: Standardized on `btn btn-success`, `btn btn-secondary`, `btn-icon`, `app-badge badge-paid`, and `badge-backorder`.
+- **Alerts & Callout Banners**: Styled with amber warning accents matching the global cards specification.
+
+---
+
+## 3. Deal Health and Anomaly Dashboard
+
+Created the **Deal Health and Anomaly Dashboard** ([`DealHealthPage.tsx`](file:///c:/Users/Avyay%20kachhia/OneDrive/Desktop/odoo_2026_final/frontend/src/features/dealhealth/pages/DealHealthPage.tsx)) using the `global css` styling reference, powered by real database statistics, and secured with role-based access control:
+
+- **Role-Based Access (Manager & Finance Only; Sales Rep Blocked)**:
+  - Top navigation bar ([`AppNavbar.tsx`](file:///c:/Users/Avyay%20kachhia/OneDrive/Desktop/odoo_2026_final/frontend/src/components/AppNavbar.tsx)): DEAL HEALTH is visible only to `['admin', 'sales_manager', 'finance']`. Sales Reps (`sales_rep`) cannot see or access it.
+  - Page-level guard: If a `sales_rep` attempts to visit `/dealhealth`, a secure `Access Restricted` message is shown.
+  - Backend API guard ([`dealhealth.route.js`](file:///c:/Users/Avyay%20kachhia/OneDrive/Desktop/odoo_2026_final/backend/src/routes/dealhealth.route.js)): Enforced `requireStaffRole('admin', 'sales_manager', 'finance')`.
+- **"Escalate to Admin" & Resolution Workflow**:
+  - Replaced generic "Escalate to Manager" with **`Escalate to Admin`**.
+  - When a Sales Manager or Finance user clicks **`Escalate to Admin`**, the deal's status transitions to `Escalated to Admin`, which persists in PostgreSQL.
+  - When the **Admin** logs in, the Deal Health dashboard features a prominent **⚡ EXECUTIVE ESCALATIONS AWAITING ADMIN REVIEW** banner highlighting all deals escalated by Managers and Finance.
+  - **Complete Removal Upon Resolution**: When the Admin clicks **`Admin Resolve`** (or a staff member resolves an alert), the backend updates `is_resolved = TRUE` and the query filters `WHERE COALESCE(dha.is_resolved, FALSE) = FALSE`. The resolved deal is **immediately and permanently removed from Deal Health everywhere** (across Admin, Manager, and Finance views).
+- **Pill Badge & Button CSS Improvements**:
+  - Fixed the text-wrapping bug where "Nudge sent" broke into two lines.
+  - Formatted all action badges (`Nudge Sent`, `Escalated to Admin`, `Pending Review`) as **perfect round pills** (`rounded-full px-3.5 py-1.5 whitespace-nowrap shrink-0 leading-none`).
+  - Added `min-w-[320px] whitespace-nowrap` on the Action table column to prevent crowding.
+  - Standardized all row buttons and bottom batch buttons to sleek `rounded-full` pill shapes.
+- **Top 3 Metric Blocks**:
+  - **Stalled Deals**: Evaluates quotations lingering in non-terminal states without customer confirmation (e.g. quotes idle 7+ days).
+  - **Discount Anomalies**: Evaluates quotations where applied discounts exceed the sales rep's historical average or governance ceilings (e.g. 18% vs 6% rep avg).
+  - **Delivery Slippage**: Evaluates orders at risk of delay, dual-warehouse dispatch bottlenecks, or warehouse inventory stockouts (e.g. Server Blade backorder deficit).
+  - Clicking any card dynamically filters the ledger table to that risk category.
+- **Flagged Deals Ledger Table**:
+  - Columns: `Deal` | `Issue` | `Flagged` | `Severity` | `Action & Governance`.
+  - Displays real quotation records (`Q-1030`, `QT-DEMO-BLENDED-01`, `QT-20260905-5F63V1`, `Q-1042`, `QT-20260905-GLL63Z`).
+  - Interactive Action triggers: **`Nudge Rep`** and **`Escalate to Admin`**, plus **`Admin Resolve`** for executive clearance.
+
+---
+
+## 4. Verification & Build Results
+
+1. **TypeScript Verification (`tsc --noEmit`)**:
+   - Passed with **0 errors**.
+2. **Vite Production Build (`npm run build`)**:
+   - Built successfully in **6.70s** with all assets and styles bundled.
+3. **Database & API Verification**:
+   - Verified role restrictions on `dealhealth.route.js`.
+   - Verified that `action_status` updates to `Escalated to Admin` and shows up on Admin view.

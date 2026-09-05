@@ -1,0 +1,74 @@
+/**
+ * DealFlow360 Global CSS Tokens
+ * Source of truth for color palette, borders, typography, and elevation
+ * Applies to all application pages (Quotations, Approvals, Fulfillment, Billing, Catalog, Portal)
+ * Excludes public landing page and login screens.
+ */
+
+:root {
+  /* Surface & Canvas Tokens */
+  --app-bg-canvas: #ffffff;
+  --app-bg-surface: #ffffff;
+  --app-bg-subtle: #f9fafb;
+  --app-bg-muted: #f3f4f6;
+  --app-bg-hover: #f3f4f6;
+
+  /* Typography & Foreground Tokens */
+  --app-text-primary: #111111;
+  --app-text-secondary: #374151;
+  --app-text-muted: #6b7280;
+  --app-text-subtle: #9ca3af;
+  --app-text-inverse: #ffffff;
+
+  /* Border Tokens */
+  --app-border-subtle: #f3f4f6;
+  --app-border: #e5e7eb;
+  --app-border-strong: #d1d5db;
+  --app-border-focus: #ff3b30;
+
+  /* Brand Signature Accent */
+  --app-brand-red: #ff3b30;
+  --app-brand-red-hover: #e03126;
+  --app-brand-red-subtle: #fef2f2;
+  --app-brand-red-border: #fecaca;
+  --app-brand-red-text: #b91c1c;
+
+  /* Status Colors */
+  --app-status-emerald-bg: #ecfdf5;
+  --app-status-emerald-border: #a7f3d0;
+  --app-status-emerald-text: #047857;
+
+  --app-status-amber-bg: #fffbeb;
+  --app-status-amber-border: #fde68a;
+  --app-status-amber-text: #b45309;
+
+  --app-status-cyan-bg: #ecfeff;
+  --app-status-cyan-border: #a5f3fc;
+  --app-status-cyan-text: #0e7490;
+
+  --app-status-purple-bg: #faf5ff;
+  --app-status-purple-border: #e9d5ff;
+  --app-status-purple-text: #7e22ce;
+
+  --app-status-rose-bg: #fff1f2;
+  --app-status-rose-border: #fecdd3;
+  --app-status-rose-text: #be123c;
+
+  --app-status-neutral-bg: #f3f4f6;
+  --app-status-neutral-border: #e5e7eb;
+  --app-status-neutral-text: #374151;
+
+  /* Elevation Shadows */
+  --app-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --app-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  --app-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+  --app-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --app-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.18);
+
+  /* Radius */
+  --app-radius-sm: 0.5rem;   /* 8px */
+  --app-radius-md: 0.75rem;  /* 12px */
+  --app-radius-lg: 1rem;     /* 16px */
+  --app-radius-xl: 1.5rem;   /* 24px */
+  --app-radius-full: 9999px;
+}

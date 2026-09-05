@@ -1,0 +1,108 @@
+/**
+ * DealFlow360 Global Modal & Dialog Styles
+ * Overlays, dialog containers, headers, and dismiss buttons
+ */
+
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-modal-dialog {
+  width: 100%;
+  max-width: 32rem;
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  box-shadow: var(--app-shadow-2xl);
+  overflow: hidden;
+  padding: 1.5rem;
+  position: relative;
+  color: var(--app-text-primary);
+  animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .app-modal-dialog {
+    padding: 2rem;
+  }
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--app-border);
+  margin-bottom: 1.5rem;
+}
+
+.app-modal-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--app-text-primary);
+}
+
+.app-modal-subtitle {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  font-family: var(--font-mono);
+  margin-top: 0.25rem;
+}
+
+.app-modal-close {
+  padding: 0.375rem;
+  border-radius: var(--app-radius-full);
+  background-color: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-modal-close:hover {
+  color: var(--app-text-primary);
+  border-color: var(--app-border-strong);
+}
+
+.app-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--app-border);
+  margin-top: 1.5rem;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

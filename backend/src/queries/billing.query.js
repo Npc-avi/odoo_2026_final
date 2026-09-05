@@ -71,9 +71,11 @@ export const LIST_INVOICES = `
   SELECT i.id, i.tenant_id, i.quotation_id, i.customer_id, i.invoice_number,
          i.invoice_type, i.status, i.subtotal_amount, i.tax_amount, i.total_amount,
          i.due_date, i.issued_at, i.paid_at,
-         c.company_name AS customer_name
+         c.company_name AS customer_name,
+         q.quotation_code, q.status AS quotation_status
   FROM invoices i
   JOIN customers c ON c.id = i.customer_id
+  LEFT JOIN quotations q ON q.id = i.quotation_id
   ORDER BY i.issued_at DESC;
 `;
 
@@ -84,7 +86,7 @@ export const GET_INVOICE_DETAILS = `
          c.company_name AS customer_name, c.email AS customer_email
   FROM invoices i
   JOIN customers c ON c.id = i.customer_id
-  WHERE i.id = $1;
+  WHERE i.id::text = $1 OR UPPER(i.invoice_number) = UPPER($1);
 `;
 
 export const GET_INVOICE_ITEMS = `

@@ -1,0 +1,131 @@
+/**
+ * DealFlow360 Global Table Styles
+ * High-contrast, clean ledger tables for quotations, fulfillment, invoices, and governance
+ */
+
+.app-table-wrapper {
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.app-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.app-table {
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border-collapse: collapse;
+}
+
+/* Table Headings */
+.app-thead {
+  background-color: var(--app-bg-subtle);
+  color: var(--app-text-muted);
+  border-bottom: 1px solid var(--app-border);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.app-th {
+  padding: 0.875rem 1.25rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.app-th-right {
+  text-align: right;
+}
+
+.app-th-center {
+  text-align: center;
+}
+
+/* Table Body Rows */
+.app-tbody {
+  color: var(--app-text-primary);
+}
+
+.app-tbody-divide tr {
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.app-tbody-divide tr:last-child {
+  border-bottom: none;
+}
+
+.app-tr {
+  transition: background-color 0.15s ease;
+}
+
+.app-tr:hover {
+  background-color: rgba(249, 250, 251, 0.8);
+}
+
+.app-tr-clickable {
+  cursor: pointer;
+}
+
+.app-tr-clickable:hover {
+  background-color: rgba(243, 244, 246, 0.7);
+}
+
+/* Table Cells */
+.app-td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+}
+
+.app-td-bold {
+  font-weight: 700;
+  color: var(--app-text-primary);
+}
+
+.app-td-brand {
+  font-weight: 700;
+  color: var(--app-brand-red);
+}
+
+.app-td-muted {
+  color: var(--app-text-muted);
+}
+
+.app-td-secondary {
+  color: var(--app-text-secondary);
+}
+
+.app-td-right {
+  text-align: right;
+}
+
+.app-td-center {
+  text-align: center;
+}
+
+.app-td-currency {
+  font-weight: 700;
+  text-align: right;
+  color: var(--app-text-primary);
+}
+
+.app-td-margin {
+  font-weight: 700;
+  color: var(--app-status-emerald-text);
+}
+
+/* Empty Table State */
+.app-table-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--app-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}

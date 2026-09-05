@@ -1,0 +1,92 @@
+/**
+ * DealFlow360 Global Status Badges & Tag Styles
+ * High-contrast WCAG AAA compliant workflow badges for all deal states
+ */
+
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--app-radius-full);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Status Variants */
+.badge-draft {
+  background-color: var(--app-status-neutral-bg);
+  border-color: var(--app-status-neutral-border);
+  color: var(--app-status-neutral-text);
+}
+
+.badge-pending {
+  background-color: var(--app-status-amber-bg);
+  border-color: var(--app-status-amber-border);
+  color: var(--app-status-amber-text);
+}
+
+.badge-negotiating {
+  background-color: var(--app-status-cyan-bg);
+  border-color: var(--app-status-cyan-border);
+  color: var(--app-status-cyan-text);
+}
+
+.badge-confirmed {
+  background-color: var(--app-status-emerald-bg);
+  border-color: var(--app-status-emerald-border);
+  color: var(--app-status-emerald-text);
+}
+
+.badge-fulfillment {
+  background-color: var(--app-status-purple-bg);
+  border-color: var(--app-status-purple-border);
+  color: var(--app-status-purple-text);
+}
+
+.badge-backorder {
+  background-color: var(--app-brand-red-subtle);
+  border-color: var(--app-brand-red-border);
+  color: var(--app-brand-red-text);
+}
+
+.badge-invoiced {
+  background-color: var(--app-status-cyan-bg);
+  border-color: var(--app-status-cyan-border);
+  color: var(--app-status-cyan-text);
+}
+
+.badge-paid {
+  background-color: var(--app-status-emerald-bg);
+  border-color: var(--app-status-emerald-border);
+  color: var(--app-status-emerald-text);
+}
+
+.badge-brand {
+  background-color: var(--app-brand-red-subtle);
+  border-color: var(--app-brand-red-border);
+  color: var(--app-brand-red);
+}
+
+/* Module Screen Tag Chip */
+.app-screen-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--app-radius-full);
+  background-color: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--app-brand-red);
+  text-transform: uppercase;
+}

@@ -1,5 +1,5 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
-import { getAlerts, markAlertResolved } from '../repository/dealhealth.repository.js';
+import { getAlerts, markAlertResolved, updateAlertAction } from '../repository/dealhealth.repository.js';
 import { triggerStalledDealCheck } from '../jobs/stalled-deal.job.js';
 
 /**
@@ -34,6 +34,32 @@ export async function resolveAlert(req, res, next) {
 
     return res.status(200).json({
       message: 'Alert marked as resolved.',
+      alert
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Record action taken on a deal health alert (e.g. 'Nudge sent', 'Escalated to Manager')
+ */
+export async function updateAction(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { action } = req.body;
+    const alert = await withTenantContext(req.actor, async (client) => {
+      return updateAlertAction(client, id, action);
+    });
+
+    if (!alert) {
+      const err = new Error('Alert not found.');
+      err.status = 404;
+      return next(err);
+    }
+
+    return res.status(200).json({
+      message: 'Action recorded successfully.',
       alert
     });
   } catch (err) {

@@ -1,0 +1,181 @@
+/**
+ * DealFlow360 Global Card Styles
+ * Standard light cards, metric KPI cards, alert callouts, and kanban cards
+ */
+
+/* Standard Light Card Container */
+.app-card {
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  box-shadow: var(--app-shadow-sm);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Interactive Card with elevation on hover */
+.app-card-interactive {
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  box-shadow: var(--app-shadow-sm);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.app-card-interactive:hover {
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-shadow-md);
+  transform: translateY(-1px);
+}
+
+.app-card-interactive-brand:hover {
+  border-color: rgba(255, 59, 48, 0.5);
+  box-shadow: 0 4px 14px -2px rgba(255, 59, 48, 0.12);
+}
+
+/* Card Sub-components */
+.app-card-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--app-border);
+  background-color: rgba(249, 250, 251, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.app-card-body {
+  padding: 1.5rem;
+}
+
+.app-card-footer {
+  padding: 1rem 1.5rem;
+  background-color: var(--app-bg-subtle);
+  border-top: 1px solid var(--app-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Metric KPI Card (Dashboard & Telemetry) */
+.app-metric-card {
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  padding: 1.5rem 2rem;
+  box-shadow: var(--app-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease-in-out;
+}
+
+.app-metric-card:hover {
+  border-color: var(--app-border-strong);
+  box-shadow: var(--app-shadow-md);
+}
+
+.app-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--app-text-muted);
+  border-bottom: 1px solid var(--app-border-subtle);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.app-metric-title {
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--app-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.app-metric-value {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  letter-spacing: -0.03em;
+  color: var(--app-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.app-metric-tagline {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+.app-metric-footer {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--app-border-subtle);
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Alert Callout Cards */
+.app-alert-info {
+  border: 1px solid var(--app-status-cyan-border);
+  background-color: var(--app-status-cyan-bg);
+  color: var(--app-status-cyan-text);
+  border-radius: var(--app-radius-lg);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.app-alert-warning {
+  border: 1px solid var(--app-status-amber-border);
+  background-color: var(--app-status-amber-bg);
+  color: var(--app-status-amber-text);
+  border-radius: var(--app-radius-lg);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.app-alert-danger {
+  border: 1px solid var(--app-status-rose-border);
+  background-color: var(--app-status-rose-bg);
+  color: var(--app-status-rose-text);
+  border-radius: var(--app-radius-lg);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.app-alert-success {
+  border: 1px solid var(--app-status-emerald-border);
+  background-color: var(--app-status-emerald-bg);
+  color: var(--app-status-emerald-text);
+  border-radius: var(--app-radius-lg);
+  padding: 1rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}

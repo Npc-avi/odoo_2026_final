@@ -1,0 +1,188 @@
+/**
+ * DealFlow360 Global Form & Input Styles
+ * Inputs, selects, textareas, quantity steppers, discount inputs, and search bars
+ */
+
+/* Form Control Labels */
+.app-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--app-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+/* Base Input */
+.app-input {
+  width: 100%;
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-lg);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  box-shadow: var(--app-shadow-xs);
+  transition: all 0.15s ease-in-out;
+  outline: none;
+}
+
+.app-input::placeholder {
+  color: var(--app-text-subtle);
+}
+
+.app-input:focus {
+  border-color: var(--app-brand-red);
+  box-shadow: 0 0 0 1px var(--app-brand-red);
+}
+
+.app-input:disabled {
+  background-color: var(--app-bg-muted);
+  color: var(--app-text-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Subtly tinted input (e.g. RFQ composer) */
+.app-input-subtle {
+  background-color: var(--app-bg-subtle);
+}
+
+.app-input-subtle:focus {
+  background-color: var(--app-bg-surface);
+  border-color: var(--app-brand-red);
+}
+
+/* Compact Table Cell Input */
+.app-input-table {
+  width: 100%;
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
+  padding: 0.375rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--app-text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.app-input-table:focus {
+  border-color: var(--app-brand-red);
+  box-shadow: 0 0 0 1px var(--app-brand-red);
+}
+
+/* Dropdown Select */
+.app-select {
+  width: 100%;
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-lg);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  box-shadow: var(--app-shadow-xs);
+  transition: all 0.15s ease-in-out;
+  outline: none;
+  cursor: pointer;
+}
+
+.app-select:focus {
+  border-color: var(--app-brand-red);
+  box-shadow: 0 0 0 1px var(--app-brand-red);
+}
+
+/* Textarea */
+.app-textarea {
+  width: 100%;
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-xl);
+  padding: 0.875rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--app-text-primary);
+  box-shadow: var(--app-shadow-xs);
+  transition: all 0.15s ease-in-out;
+  outline: none;
+  resize: vertical;
+}
+
+.app-textarea::placeholder {
+  color: var(--app-text-subtle);
+}
+
+.app-textarea:focus {
+  border-color: var(--app-brand-red);
+  box-shadow: 0 0 0 1px var(--app-brand-red);
+}
+
+/* Quantity Stepper Control */
+.app-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-md);
+  background-color: var(--app-bg-subtle);
+  overflow: hidden;
+  box-shadow: var(--app-shadow-xs);
+}
+
+.app-stepper-btn {
+  padding: 0.25rem 0.5rem;
+  color: var(--app-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-stepper-btn:hover:not(:disabled) {
+  background-color: var(--app-bg-muted);
+  color: var(--app-text-primary);
+}
+
+.app-stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.app-stepper-val {
+  padding: 0.25rem 0.625rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--app-text-primary);
+  min-width: 1.75rem;
+  text-align: center;
+}
+
+/* Search Bar */
+.app-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+}
+
+.app-search-input {
+  width: 100%;
+  padding: 0.5rem 1rem 0.5rem 2.25rem;
+  border-radius: var(--app-radius-lg);
+  background-color: var(--app-bg-surface);
+  border: 1px solid var(--app-border-strong);
+  color: var(--app-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  outline: none;
+  box-shadow: var(--app-shadow-xs);
+  transition: border-color 0.15s ease;
+}
+
+.app-search-input:focus {
+  border-color: var(--app-brand-red);
+}

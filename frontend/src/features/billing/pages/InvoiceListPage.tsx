@@ -1,244 +1,312 @@
-import React, { useEffect } from 'react';
-import { useBilling } from '../hook/useBilling';
-import { StatusBadge } from '@/components/StatusBadge';
-import {
-  Receipt,
-  RefreshCw,
-  AlertTriangle,
-  CreditCard,
-  Sparkles,
-  CheckCircle2,
-  Calendar,
-  DollarSign,
-  ArrowRight,
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { fetchInvoicesApi } from '../services/billing.api';
+import { RefreshCw, Search, ArrowRight, Receipt, CheckCircle2, Clock } from 'lucide-react';
 
 export const InvoiceListPage: React.FC = () => {
-  const {
-    invoices,
-    billableQuotes,
-    loading,
-    generating,
-    error,
-    loadData,
-    generateBilling,
-    recordPayment,
-  } = useBilling();
+  const navigate = useNavigate();
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters & Bifurcation state
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'unpaid' | 'paid'>('all');
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
+  const [amountRange, setAmountRange] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const loadInvoices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchInvoicesApi();
+      setInvoices(res.invoices || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadInvoices();
+  }, []);
 
-  const totalRevenueSettled = invoices
-    .filter((i) => i.status === 'paid')
-    .reduce((acc, i) => acc + Number(i.total_amount || 0), 0);
+  // Calculate status counts
+  const unpaidCount = invoices.filter((i) => i.status !== 'paid').length;
+  const paidCount = invoices.filter((i) => i.status === 'paid').length;
 
-  const totalOutstanding = invoices
-    .filter((i) => i.status !== 'paid')
-    .reduce((acc, i) => acc + Number(i.total_amount || 0), 0);
+  // Extract distinct customers for bifurcation
+  const uniqueCustomers = useMemo(() => {
+    const custs = new Set<string>();
+    invoices.forEach((i) => {
+      if (i.customer_name) custs.add(i.customer_name);
+    });
+    return Array.from(custs).sort();
+  }, [invoices]);
+
+  // Filtered invoices by status, customer, amount range, and search query
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const isPaid = inv.status === 'paid';
+      const amount = Number(inv.total_amount || 0);
+
+      // Status filter
+      if (selectedStatus === 'unpaid' && isPaid) return false;
+      if (selectedStatus === 'paid' && !isPaid) return false;
+
+      // Customer filter (bifurcation by customer)
+      if (selectedCustomer !== 'all' && inv.customer_name !== selectedCustomer) {
+        return false;
+      }
+
+      // Amount Range filter (bifurcation by amount range)
+      if (amountRange === 'under_1k' && amount >= 1000) return false;
+      if (amountRange === '1k_to_5k' && (amount < 1000 || amount > 5000)) return false;
+      if (amountRange === '5k_to_10k' && (amount < 5000 || amount > 10000)) return false;
+      if (amountRange === 'over_10k' && amount <= 10000) return false;
+
+      // Search query (invoice # or customer)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesNum = inv.invoice_number?.toLowerCase().includes(query);
+        const matchesCust = inv.customer_name?.toLowerCase().includes(query);
+        const matchesQuote = inv.quotation_code?.toLowerCase().includes(query);
+        if (!matchesNum && !matchesCust && !matchesQuote) return false;
+      }
+
+      return true;
+    });
+  }, [invoices, selectedStatus, selectedCustomer, amountRange, searchQuery]);
+
+  // Format due date like screenshot: "Sep 10", "Sep 15", "Aug 30"
+  const formatDueDate = (dateStr?: string) => {
+    if (!dateStr) return 'Immediate';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
-      {/* Header */}
+    <div className="space-y-8 max-w-7xl mx-auto pb-16 font-sans">
+      {/* Top Header matching Global CSS layout & Reference Photo 1 */}
       <div className="flex flex-col md:flex-row md:items-end justify-between pb-6 border-b border-neutral-200 gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase mb-2">
-            SCREEN 8 // HYBRID BILLING &amp; PAYMENT SETTLEMENT
+          <div className="app-screen-tag mb-2">
+            SCREEN 8 // REVENUE &amp; INVOICE SETTLEMENT
           </div>
           <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-[#111111] uppercase tracking-tight">
-            INVOICES &amp; REVENUE LEDGER
+            Invoices (List)
           </h1>
+          <p className="app-page-subtitle">
+            Every invoice generated from one-time and recurring contracts
+          </p>
         </div>
 
-        <button
-          onClick={loadData}
-          className="p-3 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-400 transition-colors cursor-pointer"
-          title="Refresh Invoices"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Status Count Pills matching Reference Image 1 with Global CSS Tokens */}
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'unpaid' ? 'all' : 'unpaid')}
+            className={`px-4 py-2 rounded-xl font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
+              selectedStatus === 'unpaid'
+                ? 'ring-2 ring-rose-500 bg-rose-200 text-rose-900 scale-105'
+                : 'bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200'
+            }`}
+            title="Click to filter Unpaid invoices"
+          >
+            {unpaidCount} Unpaid
+          </button>
+
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'paid' ? 'all' : 'paid')}
+            className={`px-4 py-2 rounded-xl font-mono font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm ${
+              selectedStatus === 'paid'
+                ? 'ring-2 ring-emerald-500 bg-emerald-200 text-emerald-900 scale-105'
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+            }`}
+            title="Click to filter Paid invoices"
+          >
+            {paidCount} Paid
+          </button>
+
+          {selectedStatus !== 'all' && (
+            <button
+              onClick={() => setSelectedStatus('all')}
+              className="text-xs font-mono text-neutral-500 hover:text-black underline px-1 cursor-pointer"
+            >
+              Show All
+            </button>
+          )}
+
+          <button
+            onClick={loadInvoices}
+            className="btn-icon ml-1"
+            title="Refresh Invoices Ledger"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
-          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-emerald-600 animate-spin mx-auto" />
-          <p className="text-xs text-neutral-500 tracking-widest uppercase">AUDITING BILLING & SETTLEMENT ENGINE...</p>
-        </div>
-      )}
-
       {error && !loading && (
-        <div className="p-6 rounded-3xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-mono">
+        <div className="app-alert-danger font-mono text-xs">
           {error}
         </div>
       )}
 
-      {/* Screen 8 Revenue KPIs */}
-      {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-mono">
-          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
-            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">SETTLED CASH REVENUE</span>
-            <div className="font-display font-black text-3xl text-emerald-700">
-              ${totalRevenueSettled.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-neutral-500">Paid Invoices Ledger</p>
+      {/* Bifurcation & Filter Bar: Customer Name and Amount Range */}
+      <div className="app-card p-4 sm:p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 font-mono text-xs">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-neutral-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search invoice or client..."
+              className="app-input pl-9"
+            />
           </div>
 
-          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
-            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">OUTSTANDING ACCOUNTS RECEIVABLE</span>
-            <div className="font-display font-black text-3xl text-amber-700">
-              ${totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-neutral-500">Draft & Issued Invoices</p>
+          {/* Customer Bifurcation */}
+          <div>
+            <select
+              value={selectedCustomer}
+              onChange={(e) => setSelectedCustomer(e.target.value)}
+              className="app-select"
+            >
+              <option value="all">All Customers ({uniqueCustomers.length})</option>
+              {uniqueCustomers.map((cust) => (
+                <option key={cust} value={cust}>
+                  Customer: {cust}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
-            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">INVOICED CONTRACTS</span>
-            <div className="font-display font-black text-3xl text-neutral-900">
-              {invoices.length}
-            </div>
-            <p className="text-[11px] text-neutral-500">Hybrid One-Time & Subscriptions</p>
+          {/* Amount Range Bifurcation */}
+          <div>
+            <select
+              value={amountRange}
+              onChange={(e) => setAmountRange(e.target.value)}
+              className="app-select"
+            >
+              <option value="all">All Amount Ranges</option>
+              <option value="under_1k">Amount &lt; $1,000</option>
+              <option value="1k_to_5k">Amount $1,000 – $5,000</option>
+              <option value="5k_to_10k">Amount $5,000 – $10,000</option>
+              <option value="over_10k">Amount &gt; $10,000</option>
+            </select>
+          </div>
+
+          {/* Result Count Indicator & Reset */}
+          <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-600">
+            <span>
+              Matches: <strong className="text-neutral-900">{filteredInvoices.length}</strong>
+            </span>
+            {(selectedCustomer !== 'all' || amountRange !== 'all' || searchQuery.trim() || selectedStatus !== 'all') && (
+              <button
+                onClick={() => {
+                  setSelectedCustomer('all');
+                  setAmountRange('all');
+                  setSearchQuery('');
+                  setSelectedStatus('all');
+                }}
+                className="text-[#ff3b30] hover:underline font-bold cursor-pointer text-xs"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Screen 8 Step 1: Confirmed Quotations Ready for Invoicing */}
-      {!loading && billableQuotes.length > 0 && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 sm:p-8 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-emerald-200 pb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-[10px] font-mono font-bold tracking-widest text-emerald-800 uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
-              CONFIRMED DEALS READY FOR HYBRID BILLING GENERATION ({billableQuotes.length})
-            </div>
-            <span className="text-xs font-mono text-emerald-700 font-semibold">AUTOMATIC CHARGE SPLITTING</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs">
-              <thead>
-                <tr className="border-b border-emerald-200 text-emerald-800 uppercase text-[10px] tracking-wider bg-emerald-100/60">
-                  <th className="py-3 px-4">QUOTATION</th>
-                  <th className="py-3 px-4">CLIENT ACCOUNT</th>
-                  <th className="py-3 px-4">TOTAL CONTRACT VALUE</th>
-                  <th className="py-3 px-4">STATUS</th>
-                  <th className="py-3 px-4 text-right">ACTION</th>
+      {/* Main Invoices Table matching Global CSS tables.css & Reference Image 1 */}
+      <div className="app-table-wrapper">
+        <div className="app-table-scroll">
+          <table className="app-table">
+            <thead className="app-thead">
+              <tr>
+                <th className="app-th">Invoice #</th>
+                <th className="app-th">Customer</th>
+                <th className="app-th app-th-right">Amount</th>
+                <th className="app-th app-th-center">Status</th>
+                <th className="app-th">Due Date</th>
+              </tr>
+            </thead>
+            <tbody className="app-tbody app-tbody-divide">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="app-table-empty">
+                    <div className="w-6 h-6 border-2 border-neutral-300 border-t-[#ff3b30] rounded-full animate-spin mx-auto mb-2" />
+                    Auditing invoices ledger...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-emerald-100 text-neutral-900">
-                {billableQuotes.map((q) => (
-                  <tr key={q.id} className="hover:bg-emerald-100/40 transition-colors">
-                    <td className="py-4 px-4 font-bold text-neutral-900">
-                      {q.quotation_code || q.quotation_number || q.id.slice(0, 8).toUpperCase()}
-                    </td>
-                    <td className="py-4 px-4 text-neutral-700">
-                      {q.customer_company_name || q.company_name || 'Acme Client'}
-                    </td>
-                    <td className="py-4 px-4 font-bold text-neutral-900">
-                      ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-4 px-4">
-                      <StatusBadge status={q.status} />
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <button
-                        onClick={() => generateBilling(q.id)}
-                        disabled={generating}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-black uppercase tracking-wider transition-all shadow-sm disabled:opacity-50 cursor-pointer"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>{generating ? 'GENERATING...' : 'GENERATE HYBRID BILLING'}</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              ) : filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="app-table-empty">
+                    No invoices match the selected bifurcation filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredInvoices.map((inv) => {
+                  const isPaid = inv.status === 'paid';
+                  const amount = Number(inv.total_amount || 0);
 
-      {/* Screen 8 Step 2: Issued Invoices & Settlement Table */}
-      {!loading && (
-        <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-mono font-bold tracking-widest text-neutral-800 uppercase">
-              <Receipt className="w-3.5 h-3.5 text-emerald-600" />
-              INVOICES LEDGER & SETTLEMENT
-            </div>
-            <span className="text-xs font-mono text-neutral-500">TOTAL: {invoices.length} INVOICES</span>
-          </div>
-
-          {invoices.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left font-mono text-xs">
-                <thead>
-                  <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 uppercase text-[10px] tracking-wider">
-                    <th className="py-3 px-4">INVOICE #</th>
-                    <th className="py-3 px-4">CUSTOMER</th>
-                    <th className="py-3 px-4">TYPE</th>
-                    <th className="py-3 px-4">DUE DATE</th>
-                    <th className="py-3 px-4">NET AMOUNT</th>
-                    <th className="py-3 px-4">STATUS</th>
-                    <th className="py-3 px-4 text-right">SETTLEMENT</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 text-neutral-900">
-                  {invoices.map((inv) => {
-                    const isPaid = inv.status === 'paid';
-                    return (
-                      <tr key={inv.id} className="hover:bg-neutral-50/80 transition-colors">
-                        <td className="py-4 px-4 font-bold text-neutral-900">
-                          {inv.invoice_number || `INV-${inv.id.slice(0, 8).toUpperCase()}`}
-                        </td>
-                        <td className="py-4 px-4 text-neutral-700">
-                          {inv.customer_company_name || inv.company_name || 'Client Account'}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-bold text-neutral-700 uppercase">
-                            {inv.invoice_type === 'subscription_recurring' ? 'SaaS Recurring' : 'Standard Delivery'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-neutral-500">
-                          {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'Immediate'}
-                        </td>
-                        <td className="py-4 px-4 font-bold text-neutral-900 text-sm">
-                          ${Number(inv.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-4 px-4">
-                          <StatusBadge status={inv.status} />
-                        </td>
-                        <td className="py-4 px-4 text-right">
+                  return (
+                    <tr
+                      key={inv.id}
+                      onClick={() => navigate(`/invoices/${inv.id}`)}
+                      className="app-tr app-tr-clickable group"
+                    >
+                      <td className="app-td app-td-brand group-hover:underline">
+                        {inv.invoice_number || `INV-${inv.id.slice(0, 6).toUpperCase()}`}
+                      </td>
+                      <td className="app-td app-td-bold">
+                        {inv.customer_name || 'Client Account'}
+                      </td>
+                      <td className="app-td app-td-currency text-sm">
+                        ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                      <td className="app-td app-td-center">
+                        <span className={`app-badge ${isPaid ? 'badge-paid' : 'badge-backorder'}`}>
                           {isPaid ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              SETTLED
-                            </span>
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Paid</span>
+                            </>
                           ) : (
-                            <button
-                              onClick={() => recordPayment(inv.id)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>SETTLE / PAY NOW</span>
-                            </button>
+                            <>
+                              <Clock className="w-3 h-3 text-rose-600" />
+                              <span>Unpaid</span>
+                            </>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12 border border-dashed border-neutral-300 rounded-2xl">
-              <Receipt className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-              <p className="text-xs font-mono text-neutral-600 uppercase font-bold">NO INVOICES ISSUED YET</p>
-              <p className="text-[11px] font-mono text-neutral-500 mt-1">
-                Confirm a quotation and click "Generate Hybrid Billing" to generate the invoices ledger!
-              </p>
-            </div>
-          )}
+                        </span>
+                      </td>
+                      <td className="app-td app-td-muted">
+                        {formatDueDate(inv.due_date)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
+      {/* Footer Banner Callout matching Reference Image 1 & Global CSS cards.css alert */}
+      <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 shadow-sm">
+        <p className="text-xs font-mono text-amber-900 font-semibold">
+          Click an invoice row to open its full payment and delivery reconciliation detail.
+        </p>
+      </div>
     </div>
   );
 };
+
+export default InvoiceListPage;

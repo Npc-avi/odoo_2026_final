@@ -309,15 +309,57 @@ export async function getInvoices(client) {
 export async function getInvoiceDetail(client, invoiceId) {
   const headerRes = await client.query(GET_INVOICE_DETAILS, [invoiceId]);
   if (!headerRes.rows[0]) return null;
+  const invoice = headerRes.rows[0];
 
-  const itemsRes = await client.query(GET_INVOICE_ITEMS, [invoiceId]);
+  const itemsRes = await client.query(GET_INVOICE_ITEMS, [invoice.id]);
+
+  let quotation = null;
+  if (invoice.quotation_id) {
+    const qRes = await client.query(GET_QUOTATION_BY_ID_STAFF, [invoice.quotation_id]);
+    const qItemsRes = await client.query(LIST_QUOTATION_ITEMS_STAFF, [invoice.quotation_id]);
+    const shipmentsRes = await client.query(
+      `SELECT s.id, s.shipment_code, s.status, s.shipping_cost, s.carrier, s.tracking_number, w.name as warehouse_name
+       FROM shipment_orders s
+       LEFT JOIN warehouses w ON w.id = s.warehouse_id
+       WHERE s.quotation_id = $1`,
+      [invoice.quotation_id]
+    );
+    if (qRes.rows[0]) {
+      quotation = {
+        ...qRes.rows[0],
+        items: qItemsRes.rows,
+        shipments: shipmentsRes.rows
+      };
+    }
+  }
+
+  let relatedInvoices = [];
+  if (invoice.quotation_id) {
+    const relRes = await client.query(
+      `SELECT id, invoice_number, invoice_type, status, total_amount, due_date
+       FROM invoices
+       WHERE quotation_id = $1
+       ORDER BY issued_at ASC`,
+      [invoice.quotation_id]
+    );
+    relatedInvoices = relRes.rows;
+  }
+
   return {
-    ...headerRes.rows[0],
-    items: itemsRes.rows
+    ...invoice,
+    items: itemsRes.rows,
+    quotation,
+    relatedInvoices
   };
 }
 
 export async function markInvoicePaid(client, invoiceId, paidAt) {
-  const result = await client.query(RECORD_INVOICE_PAYMENT, [invoiceId, paidAt || null]);
+  const result = await client.query(
+    `UPDATE invoices
+     SET status = 'paid', paid_at = COALESCE($2, NOW())
+     WHERE id::text = $1 OR UPPER(invoice_number) = UPPER($1)
+     RETURNING *;`,
+    [invoiceId, paidAt || null]
+  );
   return result.rows[0] || null;
 }
