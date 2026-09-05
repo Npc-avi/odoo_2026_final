@@ -29,10 +29,12 @@ import {
   RefreshCw,
   ShoppingBag,
 } from 'lucide-react';
+import { useSocket } from '@/context/socket.context';
 import { toast } from 'react-toastify';
 
 export const CustomerQuoteDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { socket, joinQuote, leaveQuote } = useSocket();
 
   const [quotation, setQuotation] = useState<any>(null);
   const [negotiations, setNegotiations] = useState<any[]>([]);
@@ -96,8 +98,41 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadData(id);
+      joinQuote(id);
     }
-  }, [id]);
+    return () => {
+      if (id) {
+        leaveQuote(id);
+      }
+    };
+  }, [id, joinQuote, leaveQuote]);
+
+  // Real-time updates via Socket.IO
+  useEffect(() => {
+    if (!socket || !id) return;
+
+    const handleRealtimeQuoteUpdate = (data: any) => {
+      if (!data?.quoteId || data?.quoteId === id) {
+        console.log('[Socket.IO Customer Quote Detail] Real-time change:', data);
+        if (data?.status === 'confirmed') {
+          toast.success('Your quotation has been confirmed!');
+        } else if (data?.negotiation) {
+          toast.info('New negotiation update from company!');
+        }
+        loadData(id);
+      }
+    };
+
+    socket.on('quotation:updated', handleRealtimeQuoteUpdate);
+    socket.on('negotiation:updated', handleRealtimeQuoteUpdate);
+    socket.on('approval:updated', handleRealtimeQuoteUpdate);
+
+    return () => {
+      socket.off('quotation:updated', handleRealtimeQuoteUpdate);
+      socket.off('negotiation:updated', handleRealtimeQuoteUpdate);
+      socket.off('approval:updated', handleRealtimeQuoteUpdate);
+    };
+  }, [socket, id]);
 
   const isConfirmed = quotation?.status === 'confirmed' || quotation?.status === 'approved';
 
@@ -287,32 +322,32 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-24">
       {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-200">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Link
               to="/portal/quotations"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-500 hover:text-neutral-900 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>MY QUOTATIONS</span>
             </Link>
-            <span className="text-neutral-600">/</span>
-            <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">
+            <span className="text-neutral-400">/</span>
+            <h1 className="font-display font-black text-2xl sm:text-3xl text-[#111111] tracking-tight">
               Proposal Negotiation
             </h1>
           </div>
-          <p className="text-xs font-mono text-neutral-400">
+          <p className="text-xs font-mono text-neutral-500">
             Review your proposal, adjust discounts, add or remove items, and negotiate live.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span
-            className={`px-4 py-1.5 rounded-full font-mono text-xs font-bold tracking-wide shadow ${
+            className={`px-4 py-1.5 rounded-full font-mono text-xs font-bold tracking-wide shadow-sm border ${
               isConfirmed
-                ? 'bg-emerald-600/90 text-white shadow-emerald-600/30'
-                : 'bg-amber-600/90 text-white shadow-amber-600/30'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}
           >
             {getStatusLabel()}
@@ -320,7 +355,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
           <button
             onClick={() => id && loadData(id)}
-            className="p-2.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+            className="p-2.5 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-400 transition-colors cursor-pointer"
             title="Refresh Proposal"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -329,15 +364,15 @@ export const CustomerQuoteDetailPage: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#ff3b30] animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">FETCHING PROPOSAL DETAILS...</p>
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-[#ff3b30] animate-spin mx-auto" />
+          <p className="text-xs text-neutral-500 tracking-widest uppercase">FETCHING PROPOSAL DETAILS...</p>
         </div>
       )}
 
       {error && !loading && (
-        <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-mono flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+        <div className="p-6 rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-mono flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -346,7 +381,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
         <div className="space-y-8">
           {/* Overview Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-sm">
               <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
                 PROPOSAL NUMBER
               </span>
@@ -355,11 +390,11 @@ export const CustomerQuoteDetailPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-sm">
               <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
                 TOTAL CONTRACT VALUE
               </span>
-              <span className="font-display font-black text-2xl text-white">
+              <span className="font-display font-black text-2xl text-neutral-900">
                 ${Number(quotation.totalAmount || 0).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -367,12 +402,12 @@ export const CustomerQuoteDetailPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+            <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-sm">
               <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
                 PROMISED DELIVERY
               </span>
-              <span className="font-mono font-bold text-sm text-neutral-300 flex items-center gap-2 mt-1">
-                <Calendar className="w-4 h-4 text-neutral-500" />
+              <span className="font-mono font-bold text-sm text-neutral-800 flex items-center gap-2 mt-1">
+                <Calendar className="w-4 h-4 text-neutral-400" />
                 {quotation.promisedDeliveryDate
                   ? new Date(quotation.promisedDeliveryDate).toLocaleDateString()
                   : 'Standard Schedule'}
@@ -381,10 +416,10 @@ export const CustomerQuoteDetailPage: React.FC = () => {
           </div>
 
           {/* Proposed Line Items Section */}
-          <div className="rounded-3xl border border-neutral-800 bg-[#09090b] overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-4 bg-black/40">
+          <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-neutral-200 flex flex-wrap items-center justify-between gap-4 bg-neutral-50/70">
               <div>
-                <h3 className="font-display font-bold text-base text-white uppercase tracking-tight">
+                <h3 className="font-display font-bold text-base text-neutral-900 uppercase tracking-tight">
                   PROPOSED ITEMS & SERVICES
                 </h3>
                 <p className="text-[11px] font-mono text-neutral-500">
@@ -396,7 +431,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddProductOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg shadow-[#ff3b30]/20"
+                  className="px-4 py-2 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>ADD PRODUCT</span>
@@ -407,7 +442,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-widest bg-neutral-950/60">
+                  <tr className="border-b border-neutral-200 text-neutral-500 uppercase text-[10px] tracking-widest bg-neutral-50">
                     <th className="py-3.5 px-6">PRODUCT / SERVICE</th>
                     <th className="py-3.5 px-4 text-right">LIST PRICE</th>
                     <th className="py-3.5 px-4 text-center">QTY</th>
@@ -417,7 +452,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                     {!isConfirmed && <th className="py-3.5 px-4 text-center w-12">REMOVE</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800/60 text-white">
+                <tbody className="divide-y divide-neutral-100 text-neutral-900">
                   {items.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-neutral-500 font-mono text-xs">
@@ -436,47 +471,47 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                       return (
                         <tr
                           key={item.itemId}
-                          className="hover:bg-neutral-900/40 transition-colors group"
+                          className="hover:bg-neutral-50/80 transition-colors group"
                         >
                           {/* Product Info */}
                           <td className="py-4 px-6 align-middle">
-                            <div className="font-bold text-white text-sm">
+                            <div className="font-bold text-neutral-900 text-sm">
                               {item.productName || 'Service Line'}
                             </div>
                             {item.productDescription && (
-                              <div className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
+                              <div className="text-[11px] text-neutral-500 line-clamp-1 mt-0.5">
                                 {item.productDescription}
                               </div>
                             )}
                           </td>
 
                           {/* Unit List Price */}
-                          <td className="py-4 px-4 text-right font-mono text-neutral-400 align-middle">
+                          <td className="py-4 px-4 text-right font-mono text-neutral-600 align-middle">
                             ${unitList.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
                           {/* Quantity Controls */}
                           <td className="py-4 px-4 text-center align-middle">
                             {isConfirmed ? (
-                              <span className="font-bold">{item.quantity}</span>
+                              <span className="font-bold text-neutral-900">{item.quantity}</span>
                             ) : (
-                              <div className="inline-flex items-center border border-neutral-800 rounded-lg bg-black overflow-hidden">
+                              <div className="inline-flex items-center border border-neutral-300 rounded-lg bg-neutral-50 overflow-hidden shadow-sm">
                                 <button
                                   type="button"
                                   onClick={() => handleQuantityChange(item, -1)}
                                   disabled={isUpdating || Number(item.quantity) <= 1}
-                                  className="px-2 py-1 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 cursor-pointer"
+                                  className="px-2 py-1 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200 transition-colors disabled:opacity-30 cursor-pointer"
                                 >
                                   -
                                 </button>
-                                <span className="px-2.5 py-1 text-white font-bold text-xs min-w-[24px] text-center">
+                                <span className="px-2.5 py-1 text-neutral-900 font-bold text-xs min-w-[24px] text-center">
                                   {item.quantity}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleQuantityChange(item, 1)}
                                   disabled={isUpdating}
-                                  className="px-2 py-1 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 cursor-pointer"
+                                  className="px-2 py-1 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200 transition-colors disabled:opacity-30 cursor-pointer"
                                 >
                                   +
                                 </button>
@@ -487,7 +522,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                           {/* Editable Discount % */}
                           <td className="py-4 px-4 text-center align-middle">
                             {isConfirmed ? (
-                              <span className="text-amber-400 font-bold">{item.appliedDiscountPct}%</span>
+                              <span className="text-amber-700 font-bold">{item.appliedDiscountPct}%</span>
                             ) : (
                               <div className="inline-flex items-center relative w-24">
                                 <input
@@ -509,10 +544,10 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                                       e.currentTarget.blur();
                                     }
                                   }}
-                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black border border-neutral-700 text-white font-mono text-xs text-center focus:border-[#ff3b30] focus:outline-none disabled:opacity-50"
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-neutral-300 text-neutral-900 font-mono text-xs text-center focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] focus:outline-none disabled:opacity-50"
                                   placeholder="0"
                                 />
-                                <span className="text-neutral-500 absolute right-2 text-xs pointer-events-none">
+                                <span className="text-neutral-400 absolute right-2 text-xs pointer-events-none">
                                   %
                                 </span>
                               </div>
@@ -520,12 +555,12 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                           </td>
 
                           {/* Calculated Unit Price */}
-                          <td className="py-4 px-4 text-right font-mono text-neutral-300 align-middle">
+                          <td className="py-4 px-4 text-right font-mono text-neutral-700 align-middle">
                             ${calculatedUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
                           {/* Line Total */}
-                          <td className="py-4 px-6 text-right font-bold text-white text-sm align-middle">
+                          <td className="py-4 px-6 text-right font-bold text-neutral-900 text-sm align-middle">
                             ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
@@ -536,7 +571,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleRemoveItem(item.itemId, item.productName || 'product')}
                                 disabled={isRemoving}
-                                className="p-2 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-40"
+                                className="p-2 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-40"
                                 title="Remove item from proposal"
                               >
                                 <Trash2 className={`w-4 h-4 ${isRemoving ? 'animate-pulse' : ''}`} />
@@ -553,15 +588,15 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
             {/* Table Footer Totals */}
             {items.length > 0 && (
-              <div className="px-6 py-4 bg-neutral-950/80 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-4">
-                <span className="text-xs font-mono text-neutral-400">
+              <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-4">
+                <span className="text-xs font-mono text-neutral-500">
                   Changes to line discounts or quantities are automatically saved and immediately synchronize with all sales reps and managers.
                 </span>
                 <div className="text-right">
                   <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block">
                     FINAL TOTAL CONTRACT
                   </span>
-                  <span className="font-display font-black text-xl text-white">
+                  <span className="font-display font-black text-xl text-neutral-900">
                     ${Number(quotation.totalAmount || 0).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -574,21 +609,21 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
           {/* Add Product Modal / Drawer */}
           {isAddProductOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-              <div className="w-full max-w-lg rounded-3xl border border-neutral-700 bg-[#0c0c0e] p-6 sm:p-8 space-y-6 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+              <div className="w-full max-w-lg rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-6 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#ff3b30]/20 flex items-center justify-center text-[#ff3b30]">
+                    <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-[#ff3b30]">
                       <ShoppingBag className="w-4 h-4" />
                     </div>
-                    <h3 className="font-display font-bold text-lg text-white uppercase tracking-tight">
+                    <h3 className="font-display font-bold text-lg text-neutral-900 uppercase tracking-tight">
                       ADD PRODUCT TO PROPOSAL
                     </h3>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsAddProductOpen(false)}
-                    className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -597,14 +632,14 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 <form onSubmit={handleAddProductSubmit} className="space-y-5">
                   {/* Select Product from Database Catalog */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                    <label className="block text-xs font-mono text-neutral-600 uppercase tracking-wider">
                       Select Catalog Item
                     </label>
                     <select
                       value={selectedProductId}
                       onChange={(e) => setSelectedProductId(e.target.value)}
                       required
-                      className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
                     >
                       <option value="">-- Choose from Catalog --</option>
                       {catalog.map((prod) => (
@@ -618,7 +653,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     {/* Quantity */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                      <label className="block text-xs font-mono text-neutral-600 uppercase tracking-wider">
                         Quantity
                       </label>
                       <input
@@ -626,13 +661,13 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                         min="1"
                         value={addQuantity}
                         onChange={(e) => setAddQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
                       />
                     </div>
 
                     {/* Counter Discount % */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                      <label className="block text-xs font-mono text-neutral-600 uppercase tracking-wider">
                         Requested Discount %
                       </label>
                       <div className="relative">
@@ -643,26 +678,26 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                           step="0.5"
                           value={addDiscountPct}
                           onChange={(e) => setAddDiscountPct(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
                           placeholder="0"
                         />
-                        <Percent className="w-3.5 h-3.5 text-neutral-500 absolute right-3 top-3.5 pointer-events-none" />
+                        <Percent className="w-3.5 h-3.5 text-neutral-400 absolute right-3 top-3.5 pointer-events-none" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200">
                     <button
                       type="button"
                       onClick={() => setIsAddProductOpen(false)}
-                      className="px-5 py-2.5 rounded-xl border border-neutral-700 text-neutral-300 font-mono text-xs hover:bg-neutral-800 transition-colors cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl border border-neutral-300 text-neutral-700 font-mono text-xs hover:bg-neutral-100 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={addingProduct}
-                      className="px-6 py-2.5 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
+                      className="px-6 py-2.5 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 shadow-sm"
                     >
                       {addingProduct ? 'Adding...' : 'Add to Proposal'}
                     </button>
@@ -676,7 +711,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
           <form onSubmit={handleSubmitRequest} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                <label className="block text-xs font-mono text-neutral-600 uppercase tracking-wider">
                   Target / Requested Delivery Date
                 </label>
                 <div className="relative">
@@ -685,14 +720,14 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                     disabled={isConfirmed}
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-xs focus:border-amber-500 focus:outline-none disabled:opacity-60"
+                    className="w-full px-4 py-3 rounded-2xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none disabled:opacity-60 shadow-sm"
                   />
-                  <Calendar className="w-4 h-4 text-neutral-500 absolute right-4 top-3.5 pointer-events-none" />
+                  <Calendar className="w-4 h-4 text-neutral-400 absolute right-4 top-3.5 pointer-events-none" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                <label className="block text-xs font-mono text-neutral-600 uppercase tracking-wider">
                   Counter-Proposal Notes / Justification
                 </label>
                 <input
@@ -701,7 +736,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                   placeholder="e.g. Requesting revised terms for volume commitment..."
                   value={generalComment}
                   onChange={(e) => setGeneralComment(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-xs focus:border-amber-500 focus:outline-none disabled:opacity-60 placeholder:text-neutral-600"
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none disabled:opacity-60 placeholder:text-neutral-400 shadow-sm"
                 />
               </div>
             </div>
@@ -712,7 +747,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submittingNeg}
-                  className="px-6 py-3 rounded-2xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-[#ff3b30]/20"
+                  className="px-6 py-3 rounded-2xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-2 shadow-sm"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{submittingNeg ? 'Submitting...' : 'Send Request'}</span>
@@ -725,7 +760,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                   type="button"
                   onClick={handleConfirmQuotation}
                   disabled={confirming}
-                  className="px-7 py-3 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer disabled:opacity-40 flex items-center gap-2"
+                  className="px-7 py-3 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer disabled:opacity-40 flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{confirming ? 'Confirming...' : 'Confirm Quotation'}</span>
@@ -733,14 +768,14 @@ export const CustomerQuoteDetailPage: React.FC = () => {
               )}
 
               {!isConfirmed && (quotation?.status === 'under_negotiation' || hasCustomerModified) && (
-                <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1.5 ml-auto">
+                <span className="text-xs font-mono text-amber-700 font-bold flex items-center gap-1.5 ml-auto">
                   <Clock className="w-4 h-4" />
                   <span>In Negotiation — Submit your request to send counter-terms to sales team</span>
                 </span>
               )}
 
               {isConfirmed && (
-                <span className="text-xs font-mono text-emerald-400 font-bold ml-auto flex items-center gap-1.5">
+                <span className="text-xs font-mono text-emerald-700 font-bold ml-auto flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Quotation Confirmed &amp; Settled</span>
                 </span>
@@ -748,8 +783,8 @@ export const CustomerQuoteDetailPage: React.FC = () => {
             </div>
 
             {/* Governance Alert Footer Banner */}
-            <div className="p-4 rounded-2xl border border-neutral-800 bg-neutral-950/80 text-amber-300/90 font-mono text-xs leading-relaxed flex items-start gap-3">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 font-mono text-xs leading-relaxed flex items-start gap-3 shadow-sm">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
                 Discounts up to 5.00% can be approved directly by your Sales Representative. If negotiated discounts exceed 5.00%, the quote escalates to both the Sales Representative and Sales Manager for two-tier governance approval.
               </span>
@@ -758,10 +793,10 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
           {/* Negotiation Thread / Discussion History */}
           {negotiations.length > 0 && (
-            <div className="rounded-3xl border border-neutral-800 bg-[#09090b] p-6 space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-800">
-                <MessageSquare className="w-4 h-4 text-neutral-400" />
-                <h3 className="font-display font-bold text-sm text-white uppercase tracking-tight">
+            <div className="rounded-3xl border border-neutral-200 bg-white p-6 space-y-4 shadow-sm">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-200">
+                <MessageSquare className="w-4 h-4 text-neutral-500" />
+                <h3 className="font-display font-bold text-sm text-neutral-900 uppercase tracking-tight">
                   NEGOTIATION THREAD & HISTORY
                 </h3>
               </div>
@@ -774,11 +809,11 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                       key={n.id || idx}
                       className={`p-4 rounded-2xl font-mono text-xs space-y-1.5 ${
                         isCustomerAuthor
-                          ? 'bg-neutral-900/80 border border-neutral-800 text-white ml-6'
-                          : 'bg-[#ff3b30]/10 border border-[#ff3b30]/20 text-[#ff8f88] mr-6'
+                          ? 'bg-neutral-100 border border-neutral-200 text-neutral-900 ml-6'
+                          : 'bg-rose-50 border border-rose-200 text-rose-950 mr-6'
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[10px] text-neutral-400">
+                      <div className="flex items-center justify-between text-[10px] text-neutral-500">
                         <span className="font-bold">
                           {isCustomerAuthor ? 'Client Message' : 'Sales Team Message'}
                         </span>

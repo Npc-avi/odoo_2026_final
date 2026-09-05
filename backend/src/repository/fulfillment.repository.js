@@ -58,8 +58,12 @@ export async function getSuggestedFulfillmentSplit(client, quotationId) {
     quotationItemId: r.id,
     productId: r.product_id,
     productName: r.product_name,
-    quantity: r.quantity,
-    lineType: r.line_type
+    productSku: r.product_sku,
+    quantity: Number(r.quantity),
+    lineType: r.line_type,
+    unitCost: Number(r.unit_cost_price || r.product_unit_cost || 0),
+    unitPrice: Number(r.calculated_unit_price || r.unit_list_price || 0),
+    lineTotal: Number(r.line_total || 0)
   }));
 
   // 2. Fetch warehouses with inventory
@@ -95,7 +99,8 @@ export async function getSuggestedFulfillmentSplit(client, quotationId) {
     suggestedSplits: allocation.splits,
     backorders: allocation.backorders,
     totalShipments: allocation.totalShipments,
-    totalShippingCost: allocation.totalShippingCost
+    totalShippingCost: allocation.totalShippingCost,
+    totalWarehouseCost: allocation.totalWarehouseCost
   };
 }
 
@@ -110,7 +115,8 @@ export async function commitFulfillmentSplit(client, tenantId, quotationId, { sp
     const requestedItems = itemsRes.rows.map(r => ({
       quotationItemId: r.id,
       productId: r.product_id,
-      quantity: r.quantity,
+      productName: r.product_name,
+      quantity: Number(r.quantity),
       lineType: r.line_type
     }));
 
@@ -152,8 +158,17 @@ export async function commitFulfillmentSplit(client, tenantId, quotationId, { sp
     ]);
     const shipmentOrder = orderRes.rows[0];
 
+    // Fetch quotation items to reliably resolve product_id for each quotation_item_id
+    const qItemsRes = await client.query(LIST_QUOTATION_ITEMS_STAFF, [quotationId]);
+    const itemProductMap = {};
+    for (const r of qItemsRes.rows) {
+      itemProductMap[r.id] = r.product_id;
+    }
+
     const shipmentItems = [];
     for (const item of split.items) {
+      const resolvedProductId = item.productId || itemProductMap[item.quotationItemId];
+
       const itemRes = await client.query(CREATE_SHIPMENT_ITEM, [
         tenantId,
         shipmentOrder.id,
@@ -164,15 +179,23 @@ export async function commitFulfillmentSplit(client, tenantId, quotationId, { sp
       shipmentItems.push(itemRes.rows[0]);
 
       // Reserve stock in warehouse_inventory
-      await client.query(RESERVE_INVENTORY, [
-        split.warehouseId,
-        item.productId,
-        item.fulfilledQty
-      ]);
+      if (resolvedProductId) {
+        await client.query(RESERVE_INVENTORY, [
+          split.warehouseId,
+          resolvedProductId,
+          item.fulfilledQty
+        ]);
+      }
     }
 
     createdShipments.push({ ...shipmentOrder, items: shipmentItems });
   }
+
+  // Update quotation status from confirmed to in_fulfillment
+  await client.query(
+    `UPDATE quotations SET status = 'in_fulfillment'::quote_status, updated_at = NOW() WHERE id = $1`,
+    [quotationId]
+  );
 
   return createdShipments;
 }

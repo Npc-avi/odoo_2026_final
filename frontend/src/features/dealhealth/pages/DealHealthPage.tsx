@@ -32,27 +32,27 @@ export const DealHealthPage: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#ff3b30] animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">SWEEPING FOR STALLED DEALS & MARGIN EROSION...</p>
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-[#ff3b30] animate-spin mx-auto" />
+          <p className="text-xs text-neutral-500 tracking-widest uppercase">SWEEPING FOR STALLED DEALS & MARGIN EROSION...</p>
         </div>
       )}
 
       {error && !loading && (
-        <div className="p-6 rounded-3xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-xs font-mono">
+        <div className="p-6 rounded-3xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-mono">
           {error}
         </div>
       )}
 
       {!loading && !error && alerts.length === 0 && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h3 className="font-display font-black text-xl text-white uppercase tracking-tight">
+          <h3 className="font-display font-black text-xl text-neutral-900 uppercase tracking-tight">
             DEAL PIPELINE AT PEAK VELOCITY
           </h3>
-          <p className="text-xs text-neutral-400 font-mono max-w-md mx-auto">
+          <p className="text-xs text-neutral-600 font-mono max-w-md mx-auto">
             Zero stalled negotiations or negative margin leaks detected by the hourly PostgreSQL sweep engine.
           </p>
         </div>
@@ -63,19 +63,19 @@ export const DealHealthPage: React.FC = () => {
           {alerts.map((al) => (
             <div
               key={al.id}
-              className="rounded-3xl border border-amber-500/25 bg-[#09090b] p-6 sm:p-8 flex items-start gap-4 shadow-xl"
+              className="rounded-3xl border border-amber-200 bg-amber-50/60 p-6 sm:p-8 flex items-start gap-4 shadow-sm"
             >
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+              <div className="p-3 rounded-2xl bg-amber-100 border border-amber-300 text-amber-700 shrink-0">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold">
+                <div className="text-[10px] font-mono text-amber-800 uppercase tracking-widest font-bold">
                   FLAG // MARGIN RISK ESCALATION
                 </div>
-                <h4 className="font-display font-black text-xl text-white uppercase tracking-tight">
+                <h4 className="font-display font-black text-xl text-neutral-900 uppercase tracking-tight">
                   {al.title || 'Attention Required On Stalled Quotation'}
                 </h4>
-                <p className="text-xs text-neutral-400 font-mono leading-relaxed max-w-2xl">
+                <p className="text-xs text-neutral-700 font-mono leading-relaxed max-w-2xl">
                   {al.message || 'Quotation has lingered beyond SLA ceiling without customer interaction.'}
                 </p>
               </div>

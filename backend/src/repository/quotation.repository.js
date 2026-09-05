@@ -12,7 +12,8 @@ import {
   LIST_PORTAL_QUOTATIONS,
   LIST_CUSTOMERS_STAFF,
   SEND_QUOTATION_TO_CUSTOMER,
-  SUBMIT_QUOTATION_FOR_APPROVAL
+  SUBMIT_QUOTATION_FOR_APPROVAL,
+  UPDATE_QUOTATION_DRAFT
 } from '../queries/quotation.query.js';
 
 export async function getQuotationsStaff(client) {
@@ -45,6 +46,19 @@ export async function createQuotationDraft(client, tenantId, repId, data) {
     data.promisedDeliveryDate || null,
     initialStatus
   ]);
+  return result.rows[0];
+}
+
+export async function updateQuotationDraft(client, quotationId, data) {
+  const result = await client.query(UPDATE_QUOTATION_DRAFT, [
+    quotationId,
+    data.customerId || null,
+    data.promisedDeliveryDate || null
+  ]);
+  if (!result.rows[0]) return null;
+  if (data.customerId) {
+    await client.query(`SELECT fn_evaluate_quotation_governance($1);`, [quotationId]);
+  }
   return result.rows[0];
 }
 

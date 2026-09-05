@@ -26,6 +26,15 @@ export async function fetchInventoryApi() {
   }
 }
 
+export async function updateStockApi(warehouseId: string, productId: string, qtyOnHand: number) {
+  try {
+    const res = await fulfillmentApi.patch('/inventory', { warehouseId, productId, qtyOnHand });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to update stock.' };
+  }
+}
+
 export async function fetchShipmentsApi() {
   return fetchConfirmedQuotationsApi();
 }
@@ -34,7 +43,7 @@ export async function fetchConfirmedQuotationsApi() {
   try {
     const res = await quotationsApi.get('/');
     const all = res.data?.quotations || [];
-    return all.filter((q: any) => ['confirmed', 'shipped', 'delivered'].includes(q.status));
+    return all.filter((q: any) => ['confirmed', 'in_fulfillment', 'fulfillment', 'shipped', 'delivered'].includes(q.status));
   } catch (error: any) {
     throw error.response?.data || { message: 'Failed to fetch confirmed orders.' };
   }
@@ -54,9 +63,9 @@ export async function confirmSplitDispatchApi(
   splitPayload: {
     splits: Array<{
       warehouseId: string;
-      quotationItemId: string;
-      fulfilledQty: number;
+      items: Array<{ quotationItemId: string; fulfilledQty: number }>;
     }>;
+    isManualOverride?: boolean;
   }
 ) {
   try {

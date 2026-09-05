@@ -26,7 +26,7 @@ router.post('/warehouses', requireStaffRole('admin', 'sales_manager', 'finance')
 
 // Inventory
 router.get('/inventory', listStock);
-router.patch('/inventory', requireStaffRole('admin', 'finance', 'sales_manager'), validateUpdateInventory, updateStock);
+router.patch('/inventory', requireStaffRole('admin', 'finance', 'sales_manager', 'sales_rep'), validateUpdateInventory, updateStock);
 
 // Quotation Fulfillment Splits
 router.get('/quotations/:id/suggest-split', suggestSplit);

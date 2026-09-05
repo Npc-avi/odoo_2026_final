@@ -1,4 +1,5 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
+import { emitQuotationUpdated } from '../service/socket.service.js';
 import {
   getWarehouses,
   createWarehouse,
@@ -84,8 +85,10 @@ export async function confirmSplit(req, res, next) {
       });
     });
 
+    emitQuotationUpdated(req.actor.tenantId, id, { status: 'in_fulfillment' });
+
     return res.status(201).json({
-      message: 'Fulfillment plan confirmed and shipments generated.',
+      message: 'Fulfillment plan confirmed and quotation pushed to fulfillment.',
       shipments
     });
   } catch (err) {

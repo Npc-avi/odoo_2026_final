@@ -1,5 +1,9 @@
 import { withTenantContext, withElevatedTenantContext } from '../middleware/tenant-context.middleware.js';
 import {
+  emitQuotationCreated,
+  emitQuotationUpdated
+} from '../service/socket.service.js';
+import {
   getQuotationsStaff,
   getQuotationDetailStaff,
   createQuotationDraft,
@@ -11,7 +15,8 @@ import {
   getPortalQuotationsList,
   getCustomersStaff,
   sendQuotationStaff,
-  submitQuotationForApprovalStaff
+  submitQuotationForApprovalStaff,
+  updateQuotationDraft
 } from '../repository/quotation.repository.js';
 
 /**
@@ -58,7 +63,31 @@ export async function createQuotation(req, res, next) {
     const quote = await withTenantContext(req.actor, async (client) => {
       return createQuotationDraft(client, req.actor.tenantId, req.actor.userId, req.body);
     });
+    emitQuotationCreated(req.actor.tenantId, quote);
     return res.status(201).json({ quotation: quote });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Staff: Update customer or properties of a draft quotation
+ */
+export async function updateQuotation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      return updateQuotationDraft(client, id, req.body);
+    });
+
+    if (!updatedQuote) {
+      const err = new Error('Quotation not found or cannot be modified because it is no longer in draft.');
+      err.status = 400;
+      return next(err);
+    }
+
+    emitQuotationUpdated(req.actor.tenantId, id, { quotation: updatedQuote });
+    return res.status(200).json({ quotation: updatedQuote, message: 'Draft quotation updated.' });
   } catch (err) {
     next(err);
   }
@@ -74,6 +103,8 @@ export async function addItem(req, res, next) {
     const result = await withTenantContext(req.actor, async (client) => {
       return addQuotationItem(client, req.actor.tenantId, id, req.body);
     });
+
+    emitQuotationUpdated(req.actor.tenantId, id, { item: result.item, quotationSummary: result.quotationSummary });
 
     return res.status(201).json({
       message: 'Item added to quotation.',
@@ -102,6 +133,8 @@ export async function editItem(req, res, next) {
       return next(err);
     }
 
+    emitQuotationUpdated(req.actor.tenantId, result.quotationSummary?.id, { item: result.item, quotationSummary: result.quotationSummary });
+
     return res.status(200).json({
       message: 'Quotation item updated.',
       item: result.item,
@@ -127,6 +160,8 @@ export async function removeItem(req, res, next) {
       err.status = 404;
       return next(err);
     }
+
+    emitQuotationUpdated(req.actor.tenantId, result.quotationSummary?.id, { deletedItemId: result.deletedItemId, quotationSummary: result.quotationSummary });
 
     return res.status(200).json({
       message: 'Item removed from quotation.',
@@ -219,6 +254,8 @@ export async function sendQuotation(req, res, next) {
       return next(err);
     }
 
+    emitQuotationUpdated(req.actor.tenantId, id, { quotation: updatedQuote, status: updatedQuote.status });
+
     return res.status(200).json({
       message: 'Quotation sent to Customer Portal.',
       quotation: updatedQuote
@@ -243,6 +280,8 @@ export async function submitQuotationApproval(req, res, next) {
       err.status = 404;
       return next(err);
     }
+
+    emitQuotationUpdated(req.actor.tenantId, id, { quotation: updatedQuote, status: updatedQuote.status });
 
     return res.status(200).json({
       message: 'Quotation submitted for approval successfully.',
@@ -288,6 +327,8 @@ export async function addPortalItem(req, res, next) {
       );
       return added;
     });
+
+    emitQuotationUpdated(req.actor.tenantId, id, { item: result.item, quotationSummary: result.quotationSummary, status: 'under_negotiation' });
 
     return res.status(201).json({
       message: 'Item added to quotation under negotiation.',
@@ -339,6 +380,8 @@ export async function editPortalItem(req, res, next) {
       return updated;
     });
 
+    emitQuotationUpdated(req.actor.tenantId, result.quotationSummary?.id || result.item?.quotation_id, { item: result.item, quotationSummary: result.quotationSummary, status: 'under_negotiation' });
+
     return res.status(200).json({
       message: 'Proposal item updated under negotiation.',
       item: result.item,
@@ -388,6 +431,8 @@ export async function removePortalItem(req, res, next) {
       );
       return deleted;
     });
+
+    emitQuotationUpdated(req.actor.tenantId, result.quotationSummary?.id, { deletedItemId: result.deletedItemId, quotationSummary: result.quotationSummary, status: 'under_negotiation' });
 
     return res.status(200).json({
       message: 'Proposal item removed under negotiation.',

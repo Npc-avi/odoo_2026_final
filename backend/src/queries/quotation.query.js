@@ -7,7 +7,13 @@ export const LIST_QUOTATIONS_STAFF = `
          q.status, q.subtotal_amount, q.total_amount, q.total_cost, q.total_margin_pct,
          q.blended_risk_score, q.promised_delivery_date, q.last_activity_at, q.created_at, q.updated_at,
          c.company_name AS customer_company_name, c.tier AS customer_tier,
-         u.full_name AS assigned_rep_name
+         u.full_name AS assigned_rep_name,
+         EXISTS (
+           SELECT 1 FROM approval_audit_logs aal
+           WHERE aal.quotation_id = q.id
+             AND aal.reviewer_role = 'sales_rep'
+             AND aal.action = 'approved'
+         ) AS rep_approved
   FROM quotations q
   JOIN customers c ON c.id = q.customer_id
   JOIN users u ON u.id = q.assigned_rep_id
@@ -19,7 +25,13 @@ export const GET_QUOTATION_BY_ID_STAFF = `
          q.status, q.subtotal_amount, q.total_amount, q.total_cost, q.total_margin_pct,
          q.blended_risk_score, q.promised_delivery_date, q.last_activity_at, q.created_at, q.updated_at,
          c.company_name AS customer_company_name, c.tier AS customer_tier, c.email AS customer_email,
-         u.full_name AS assigned_rep_name
+         u.full_name AS assigned_rep_name,
+         EXISTS (
+           SELECT 1 FROM approval_audit_logs aal
+           WHERE aal.quotation_id = q.id
+             AND aal.reviewer_role = 'sales_rep'
+             AND aal.action = 'approved'
+         ) AS rep_approved
   FROM quotations q
   JOIN customers c ON c.id = q.customer_id
   JOIN users u ON u.id = q.assigned_rep_id
@@ -38,6 +50,15 @@ export const CREATE_QUOTATION = `
   RETURNING *;
 `;
 
+export const UPDATE_QUOTATION_DRAFT = `
+  UPDATE quotations
+  SET customer_id = COALESCE($2, customer_id),
+      promised_delivery_date = COALESCE($3, promised_delivery_date),
+      updated_at = NOW()
+  WHERE id = $1 AND status = 'draft'::quote_status
+  RETURNING *;
+`;
+
 export const SUBMIT_QUOTATION_FOR_APPROVAL = `
   UPDATE quotations
   SET status = 'pending_manager'::quote_status, last_activity_at = NOW(), updated_at = NOW()
@@ -50,7 +71,7 @@ export const LIST_QUOTATION_ITEMS_STAFF = `
          qi.line_type, qi.quantity, qi.unit_list_price, qi.unit_cost_price,
          qi.applied_discount_pct, qi.calculated_unit_price, qi.line_total,
          qi.line_cost, qi.line_margin_pct, qi.line_notes,
-         p.name AS product_name, p.sku AS product_sku,
+         p.name AS product_name, p.sku AS product_sku, p.unit_cost AS product_unit_cost,
          pv.attribute_name, pv.attribute_value
   FROM quotation_items qi
   JOIN products p ON p.id = qi.product_id

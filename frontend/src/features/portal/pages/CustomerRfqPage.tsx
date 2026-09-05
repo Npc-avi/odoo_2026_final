@@ -44,20 +44,20 @@ export const CustomerRfqPage: React.FC = () => {
       </div>
 
       {success ? (
-        <div className="p-12 rounded-3xl border border-emerald-500/25 bg-[#09090b] text-center space-y-4 shadow-2xl">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
+        <div className="p-12 rounded-3xl border border-emerald-200 bg-emerald-50/50 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h3 className="font-display font-black text-2xl text-white uppercase tracking-tight">
+          <h3 className="font-display font-black text-2xl text-neutral-900 uppercase tracking-tight">
             RFQ TRANSMITTED TO SALES DESK
           </h3>
-          <p className="text-xs text-neutral-400 font-mono max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-neutral-600 font-mono max-w-md mx-auto leading-relaxed">
             Your dedicated sales director has received your parameters and is formulating a proposal.
           </p>
           <div className="pt-4">
             <ScrambleCTAButton
               text="SUBMIT ANOTHER INQUIRY"
-              variant="white"
+              variant="black"
               size="sm"
               onClick={() => {
                 setSuccess(false);
@@ -68,16 +68,16 @@ export const CustomerRfqPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="rounded-3xl border border-neutral-800 bg-[#09090b] p-8 sm:p-10 space-y-6 shadow-2xl">
+        <form onSubmit={handleSubmit} className="rounded-3xl border border-neutral-200 bg-white p-8 sm:p-10 space-y-6 shadow-sm">
           {error && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>{error}</span>
             </div>
           )}
 
           <div>
-            <label className="block text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase mb-2">
+            <label className="block text-[10px] font-mono font-bold tracking-widest text-neutral-600 uppercase mb-2">
               TARGET BUDGET CEILING (USD)
             </label>
             <input
@@ -86,12 +86,12 @@ export const CustomerRfqPage: React.FC = () => {
               value={targetPrice}
               onChange={(e) => setTargetPrice(e.target.value)}
               placeholder="e.g. 75000"
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#ff3b30] transition-colors font-mono"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-2xl px-5 py-3.5 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-[#ff3b30] focus:bg-white transition-colors font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase mb-2">
+            <label className="block text-[10px] font-mono font-bold tracking-widest text-neutral-600 uppercase mb-2">
               SCOPE SPECIFICATIONS & DELIVERY CONSTRAINTS
             </label>
             <textarea
@@ -100,19 +100,19 @@ export const CustomerRfqPage: React.FC = () => {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Detail required hardware units, SLA tier requirements, or target delivery dates..."
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#ff3b30] transition-colors font-mono resize-none"
+              className="w-full bg-neutral-50 border border-neutral-300 rounded-2xl px-5 py-3.5 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-[#ff3b30] focus:bg-white transition-colors font-mono resize-none"
             />
           </div>
 
-          <div className="pt-4 border-t border-neutral-800/80 flex items-center justify-between">
+          <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
             <button
               type="submit"
               disabled={submitting}
-              className="px-8 py-3.5 rounded-full bg-[#ff3b30] hover:bg-[#ff4d42] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-lg shadow-[#ff3b30]/30 cursor-pointer disabled:opacity-50"
+              className="px-8 py-3.5 rounded-full bg-[#ff3b30] hover:bg-[#ff4d42] text-white font-mono font-bold text-xs uppercase tracking-widest transition-all shadow-md shadow-[#ff3b30]/20 cursor-pointer disabled:opacity-50"
             >
               {submitting ? 'DISPATCHING TELEMETRY...' : 'SUBMIT RFQ TO SALES DESK'}
             </button>
-            <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest">
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
               CONFIDENTIAL INQUIRY
             </span>
           </div>

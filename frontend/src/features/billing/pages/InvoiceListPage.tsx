@@ -60,14 +60,14 @@ export const InvoiceListPage: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-emerald-400 animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">AUDITING BILLING & SETTLEMENT ENGINE...</p>
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-emerald-600 animate-spin mx-auto" />
+          <p className="text-xs text-neutral-500 tracking-widest uppercase">AUDITING BILLING & SETTLEMENT ENGINE...</p>
         </div>
       )}
 
       {error && !loading && (
-        <div className="p-6 rounded-3xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-xs font-mono">
+        <div className="p-6 rounded-3xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-mono">
           {error}
         </div>
       )}
@@ -75,25 +75,25 @@ export const InvoiceListPage: React.FC = () => {
       {/* Screen 8 Revenue KPIs */}
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 font-mono">
-          <div className="p-6 rounded-3xl border border-neutral-800 bg-[#09090b] space-y-2">
-            <span className="text-[10px] text-neutral-400 uppercase tracking-widest">SETTLED CASH REVENUE</span>
-            <div className="font-display font-black text-3xl text-emerald-400">
+          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
+            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">SETTLED CASH REVENUE</span>
+            <div className="font-display font-black text-3xl text-emerald-700">
               ${totalRevenueSettled.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-neutral-500">Paid Invoices Ledger</p>
           </div>
 
-          <div className="p-6 rounded-3xl border border-neutral-800 bg-[#09090b] space-y-2">
-            <span className="text-[10px] text-neutral-400 uppercase tracking-widest">OUTSTANDING ACCOUNTS RECEIVABLE</span>
-            <div className="font-display font-black text-3xl text-amber-400">
+          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
+            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">OUTSTANDING ACCOUNTS RECEIVABLE</span>
+            <div className="font-display font-black text-3xl text-amber-700">
               ${totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-neutral-500">Draft & Issued Invoices</p>
           </div>
 
-          <div className="p-6 rounded-3xl border border-neutral-800 bg-[#09090b] space-y-2">
-            <span className="text-[10px] text-neutral-400 uppercase tracking-widest">INVOICED CONTRACTS</span>
-            <div className="font-display font-black text-3xl text-white">
+          <div className="p-6 rounded-3xl border border-neutral-200 bg-white space-y-2 shadow-sm">
+            <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">INVOICED CONTRACTS</span>
+            <div className="font-display font-black text-3xl text-neutral-900">
               {invoices.length}
             </div>
             <p className="text-[11px] text-neutral-500">Hybrid One-Time & Subscriptions</p>
@@ -103,19 +103,19 @@ export const InvoiceListPage: React.FC = () => {
 
       {/* Screen 8 Step 1: Confirmed Quotations Ready for Invoicing */}
       {!loading && billableQuotes.length > 0 && (
-        <div className="rounded-3xl border border-emerald-500/30 bg-emerald-950/10 p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-emerald-900/40 pb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/40 text-[10px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/50 p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-emerald-200 pb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 border border-emerald-300 text-[10px] font-mono font-bold tracking-widest text-emerald-800 uppercase">
               <Sparkles className="w-3.5 h-3.5" />
               CONFIRMED DEALS READY FOR HYBRID BILLING GENERATION ({billableQuotes.length})
             </div>
-            <span className="text-xs font-mono text-emerald-400/80">AUTOMATIC CHARGE SPLITTING</span>
+            <span className="text-xs font-mono text-emerald-700 font-semibold">AUTOMATIC CHARGE SPLITTING</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
               <thead>
-                <tr className="border-b border-emerald-900/40 text-emerald-300/60 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-emerald-200 text-emerald-800 uppercase text-[10px] tracking-wider bg-emerald-100/60">
                   <th className="py-3 px-4">QUOTATION</th>
                   <th className="py-3 px-4">CLIENT ACCOUNT</th>
                   <th className="py-3 px-4">TOTAL CONTRACT VALUE</th>
@@ -123,16 +123,16 @@ export const InvoiceListPage: React.FC = () => {
                   <th className="py-3 px-4 text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-emerald-900/20">
+              <tbody className="divide-y divide-emerald-100 text-neutral-900">
                 {billableQuotes.map((q) => (
-                  <tr key={q.id} className="hover:bg-emerald-950/20 transition-colors">
-                    <td className="py-4 px-4 font-bold text-white">
+                  <tr key={q.id} className="hover:bg-emerald-100/40 transition-colors">
+                    <td className="py-4 px-4 font-bold text-neutral-900">
                       {q.quotation_code || q.quotation_number || q.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="py-4 px-4 text-neutral-300">
+                    <td className="py-4 px-4 text-neutral-700">
                       {q.customer_company_name || q.company_name || 'Acme Client'}
                     </td>
-                    <td className="py-4 px-4 font-bold text-white">
+                    <td className="py-4 px-4 font-bold text-neutral-900">
                       ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-4 px-4">
@@ -142,7 +142,7 @@ export const InvoiceListPage: React.FC = () => {
                       <button
                         onClick={() => generateBilling(q.id)}
                         disabled={generating}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-950/40 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs font-black uppercase tracking-wider transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                       >
                         <Receipt className="w-3.5 h-3.5" />
                         <span>{generating ? 'GENERATING...' : 'GENERATE HYBRID BILLING'}</span>
@@ -158,20 +158,20 @@ export const InvoiceListPage: React.FC = () => {
 
       {/* Screen 8 Step 2: Issued Invoices & Settlement Table */}
       {!loading && (
-        <div className="rounded-3xl border border-neutral-800 bg-[#09090b] p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono font-bold tracking-widest text-white uppercase">
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-mono font-bold tracking-widest text-neutral-800 uppercase">
+              <Receipt className="w-3.5 h-3.5 text-emerald-600" />
               INVOICES LEDGER & SETTLEMENT
             </div>
-            <span className="text-xs font-mono text-neutral-400">TOTAL: {invoices.length} INVOICES</span>
+            <span className="text-xs font-mono text-neutral-500">TOTAL: {invoices.length} INVOICES</span>
           </div>
 
           {invoices.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider">
+                  <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 uppercase text-[10px] tracking-wider">
                     <th className="py-3 px-4">INVOICE #</th>
                     <th className="py-3 px-4">CUSTOMER</th>
                     <th className="py-3 px-4">TYPE</th>
@@ -181,26 +181,26 @@ export const InvoiceListPage: React.FC = () => {
                     <th className="py-3 px-4 text-right">SETTLEMENT</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800/60">
+                <tbody className="divide-y divide-neutral-100 text-neutral-900">
                   {invoices.map((inv) => {
                     const isPaid = inv.status === 'paid';
                     return (
-                      <tr key={inv.id} className="hover:bg-neutral-900/30 transition-colors">
-                        <td className="py-4 px-4 font-bold text-white">
+                      <tr key={inv.id} className="hover:bg-neutral-50/80 transition-colors">
+                        <td className="py-4 px-4 font-bold text-neutral-900">
                           {inv.invoice_number || `INV-${inv.id.slice(0, 8).toUpperCase()}`}
                         </td>
-                        <td className="py-4 px-4 text-neutral-300">
+                        <td className="py-4 px-4 text-neutral-700">
                           {inv.customer_company_name || inv.company_name || 'Client Account'}
                         </td>
                         <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] font-bold text-neutral-300 uppercase">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-bold text-neutral-700 uppercase">
                             {inv.invoice_type === 'subscription_recurring' ? 'SaaS Recurring' : 'Standard Delivery'}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-neutral-400">
+                        <td className="py-4 px-4 text-neutral-500">
                           {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'Immediate'}
                         </td>
-                        <td className="py-4 px-4 font-bold text-white text-sm">
+                        <td className="py-4 px-4 font-bold text-neutral-900 text-sm">
                           ${Number(inv.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td className="py-4 px-4">
@@ -208,14 +208,14 @@ export const InvoiceListPage: React.FC = () => {
                         </td>
                         <td className="py-4 px-4 text-right">
                           {isPaid ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold text-xs">
+                            <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               SETTLED
                             </span>
                           ) : (
                             <button
                               onClick={() => recordPayment(inv.id)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-950/40 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
                             >
                               <CreditCard className="w-3.5 h-3.5" />
                               <span>SETTLE / PAY NOW</span>
@@ -229,9 +229,9 @@ export const InvoiceListPage: React.FC = () => {
               </table>
             </div>
           ) : (
-            <div className="text-center py-12 border border-dashed border-neutral-800 rounded-2xl">
-              <Receipt className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-              <p className="text-xs font-mono text-neutral-400 uppercase">NO INVOICES ISSUED YET</p>
+            <div className="text-center py-12 border border-dashed border-neutral-300 rounded-2xl">
+              <Receipt className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
+              <p className="text-xs font-mono text-neutral-600 uppercase font-bold">NO INVOICES ISSUED YET</p>
               <p className="text-[11px] font-mono text-neutral-500 mt-1">
                 Confirm a quotation and click "Generate Hybrid Billing" to generate the invoices ledger!
               </p>

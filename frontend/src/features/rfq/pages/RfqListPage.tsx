@@ -33,37 +33,37 @@ export const RfqListPage: React.FC = () => {
       </div>
 
       {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-cyan-400 animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">FETCHING PORTAL INQUIRIES...</p>
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-[#ff3b30] animate-spin mx-auto" />
+          <p className="text-xs text-neutral-500 tracking-widest uppercase">FETCHING PORTAL INQUIRIES...</p>
         </div>
       )}
 
       {error && !loading && (
-        <div className="p-6 rounded-3xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-xs font-mono">
+        <div className="p-6 rounded-3xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-mono">
           {error}
         </div>
       )}
 
       {!loading && !error && rfqs.length === 0 && (
-        <div className="p-16 rounded-3xl border border-dashed border-neutral-800 bg-[#09090b]/50 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto text-neutral-500">
+        <div className="p-16 rounded-3xl border border-dashed border-neutral-300 bg-neutral-50/50 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center mx-auto text-neutral-400">
             <GitPullRequest className="w-6 h-6" />
           </div>
-          <h3 className="font-display font-black text-xl text-white uppercase tracking-tight">
+          <h3 className="font-display font-black text-xl text-neutral-900 uppercase tracking-tight">
             NO PENDING INQUIRIES
           </h3>
-          <p className="text-xs text-neutral-400 font-mono max-w-sm mx-auto">
+          <p className="text-xs text-neutral-500 font-mono max-w-sm mx-auto">
             Client inquiries submitted through the external customer portal will populate this queue.
           </p>
         </div>
       )}
 
       {!loading && !error && rfqs.length > 0 && (
-        <div className="rounded-3xl border border-neutral-800 bg-[#09090b] overflow-hidden shadow-2xl">
+        <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-neutral-900/80 text-neutral-400 border-b border-neutral-800 uppercase tracking-widest text-[10px]">
+              <thead className="bg-neutral-50 text-neutral-500 border-b border-neutral-200 uppercase tracking-widest text-[10px]">
                 <tr>
                   <th className="px-6 py-4">RFQ ID</th>
                   <th className="px-6 py-4">CLIENT COMPANY</th>
@@ -71,16 +71,16 @@ export const RfqListPage: React.FC = () => {
                   <th className="px-6 py-4">STATUS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60 text-white">
+              <tbody className="divide-y divide-neutral-100 text-neutral-900">
                 {rfqs.map((rfq) => (
-                  <tr key={rfq.id} className="hover:bg-[#111] transition-colors">
-                    <td className="px-6 py-4 font-bold text-cyan-400">
+                  <tr key={rfq.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <td className="px-6 py-4 font-bold text-[#ff3b30]">
                       {rfq.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-white">
+                    <td className="px-6 py-4 font-bold text-neutral-900">
                       {rfq.company_name || 'Enterprise Buyer'}
                     </td>
-                    <td className="px-6 py-4 font-bold text-neutral-200">
+                    <td className="px-6 py-4 font-bold text-neutral-900">
                       ${Number(rfq.estimated_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4">

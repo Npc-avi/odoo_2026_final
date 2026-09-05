@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuotations } from '../hook/useQuotations';
+import { useSocket } from '@/context/socket.context';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ScrambleCTAButton } from '@/components/ScrambleCTAButton';
 import {
@@ -19,6 +20,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export const QuotationListPage: React.FC = () => {
   const { quotations, loading, error, loadQuotations } = useQuotations();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +28,28 @@ export const QuotationListPage: React.FC = () => {
   useEffect(() => {
     loadQuotations();
   }, [loadQuotations]);
+
+  // Real-time Socket.IO listeners for Kanban & Table updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleRealtimeChange = (data: any) => {
+      console.log('[Socket.IO Kanban/Table] Real-time quotation change detected:', data);
+      loadQuotations();
+    };
+
+    socket.on('quotation:created', handleRealtimeChange);
+    socket.on('quotation:updated', handleRealtimeChange);
+    socket.on('negotiation:updated', handleRealtimeChange);
+    socket.on('approval:updated', handleRealtimeChange);
+
+    return () => {
+      socket.off('quotation:created', handleRealtimeChange);
+      socket.off('quotation:updated', handleRealtimeChange);
+      socket.off('negotiation:updated', handleRealtimeChange);
+      socket.off('approval:updated', handleRealtimeChange);
+    };
+  }, [socket, loadQuotations]);
 
   const filteredQuotes = quotations.filter((q) => {
     const qCode = (q.quotation_code || q.quotation_number || '').toLowerCase();
@@ -59,6 +83,12 @@ export const QuotationListPage: React.FC = () => {
       title: '4. CONFIRMED',
       statuses: ['confirmed', 'approved'],
       color: 'border-emerald-500/40 text-emerald-400',
+    },
+    {
+      id: 'fulfillment',
+      title: '5. IN FULFILLMENT',
+      statuses: ['in_fulfillment', 'fulfillment'],
+      color: 'border-purple-500/40 text-purple-400',
     },
   ];
 
@@ -136,23 +166,23 @@ export const QuotationListPage: React.FC = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#ff3b30] animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">FETCHING PIPELINE LEDGER...</p>
+        <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-200 border-t-[#ff3b30] animate-spin mx-auto" />
+          <p className="text-xs text-neutral-500 tracking-widest uppercase">FETCHING PIPELINE LEDGER...</p>
         </div>
       )}
 
       {/* Error State */}
       {error && !loading && (
-        <div className="p-6 rounded-3xl border border-rose-500/20 bg-rose-500/10 flex items-center gap-3 text-rose-400 text-xs font-mono">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
+        <div className="p-6 rounded-3xl border border-rose-200 bg-rose-50 flex items-center gap-3 text-rose-700 text-xs font-mono">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Kanban View */}
       {!loading && !error && viewMode === 'kanban' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {pipelineStages.map((stage) => {
             const stageQuotes = filteredQuotes.filter((q) =>
               stage.statuses.includes(q.status)
@@ -165,19 +195,19 @@ export const QuotationListPage: React.FC = () => {
             return (
               <div
                 key={stage.id}
-                className="flex flex-col rounded-3xl border border-neutral-800 bg-[#09090b] p-4 space-y-4 min-h-[500px]"
+                className="flex flex-col rounded-3xl border border-neutral-200 bg-neutral-50/70 p-4 space-y-4 min-h-[500px]"
               >
                 {/* Stage Header */}
-                <div className="border-b border-neutral-800/80 pb-3">
+                <div className="border-b border-neutral-200 pb-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black tracking-wider text-neutral-300">
+                    <span className="font-mono text-xs font-black tracking-wider text-neutral-800">
                       {stage.title}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono text-neutral-400 font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-white border border-neutral-200 text-[10px] font-mono text-neutral-600 font-bold shadow-xs">
                       {stageQuotes.length}
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-neutral-400 mt-1">
+                  <div className="text-[11px] font-mono text-neutral-500 mt-1 font-semibold">
                     ${totalStageValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
                   </div>
                 </div>
@@ -188,33 +218,33 @@ export const QuotationListPage: React.FC = () => {
                     <div
                       key={quote.id}
                       onClick={() => navigate(`/quotations/${quote.id}/edit`)}
-                      className="p-4 rounded-2xl border border-neutral-800 hover:border-[#ff3b30]/60 bg-neutral-950/60 hover:bg-neutral-900/60 transition-all cursor-pointer space-y-3 group"
+                      className="p-4 rounded-2xl border border-neutral-200 hover:border-[#ff3b30]/60 bg-white hover:shadow-md transition-all cursor-pointer space-y-3 group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-white group-hover:text-[#ff3b30] transition-colors">
+                        <span className="font-mono text-xs font-bold text-neutral-900 group-hover:text-[#ff3b30] transition-colors">
                           {quote.quotation_code || quote.quotation_number || quote.id.slice(0, 8).toUpperCase()}
                         </span>
-                        <StatusBadge status={quote.status} />
+                        <StatusBadge status={quote.status} repApproved={quote.rep_approved} />
                       </div>
 
-                      <div className="font-mono text-xs text-neutral-300 font-semibold truncate">
+                      <div className="font-mono text-xs text-neutral-700 font-semibold truncate">
                         {quote.customer_company_name || quote.company_name || 'Client Account'}
                       </div>
 
-                      <div className="flex items-baseline justify-between pt-2 border-t border-neutral-800/60 font-mono">
-                        <span className="text-white font-bold text-sm">
+                      <div className="flex items-baseline justify-between pt-2 border-t border-neutral-100 font-mono">
+                        <span className="text-neutral-900 font-bold text-sm">
                           ${Number(quote.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                         {quote.total_margin_pct && (
-                          <span className="text-[11px] text-emerald-400">
+                          <span className="text-[11px] text-emerald-700 font-bold">
                             {Number(quote.total_margin_pct).toFixed(0)}% Margin
                           </span>
                         )}
                       </div>
 
                       {Number(quote.blended_risk_score || 0) > 0 && (
-                        <div className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
+                        <div className="text-[10px] font-mono text-amber-700 font-bold flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-600" />
                           <span>Risk: {Number(quote.blended_risk_score).toFixed(1)} pts</span>
                         </div>
                       )}
@@ -222,8 +252,8 @@ export const QuotationListPage: React.FC = () => {
                   ))}
 
                   {stageQuotes.length === 0 && (
-                    <div className="text-center py-12 border border-dashed border-neutral-800/60 rounded-2xl">
-                      <span className="text-[10px] font-mono text-neutral-600 uppercase">NO DEALS</span>
+                    <div className="text-center py-12 border border-dashed border-neutral-300 rounded-2xl">
+                      <span className="text-[10px] font-mono text-neutral-400 uppercase">NO DEALS</span>
                     </div>
                   )}
                 </div>
@@ -235,11 +265,11 @@ export const QuotationListPage: React.FC = () => {
 
       {/* Table View */}
       {!loading && !error && viewMode === 'table' && (
-        <div className="rounded-3xl border border-neutral-800 bg-[#09090b] overflow-hidden">
+        <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
               <thead>
-                <tr className="border-b border-neutral-800 bg-neutral-900/40 text-neutral-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 uppercase text-[10px] tracking-wider">
                   <th className="py-4 px-6">QUOTE NUMBER</th>
                   <th className="py-4 px-6">CUSTOMER</th>
                   <th className="py-4 px-6">STATUS</th>
@@ -249,28 +279,28 @@ export const QuotationListPage: React.FC = () => {
                   <th className="py-4 px-6 text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60">
+              <tbody className="divide-y divide-neutral-100 text-neutral-900">
                 {filteredQuotes.map((quote) => (
-                  <tr key={quote.id} className="hover:bg-neutral-900/30 transition-colors">
-                    <td className="py-4 px-6 font-bold text-white">
+                  <tr key={quote.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <td className="py-4 px-6 font-bold text-neutral-900">
                       {quote.quotation_code || quote.quotation_number || quote.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="py-4 px-6 text-neutral-300">
+                    <td className="py-4 px-6 text-neutral-700">
                       {quote.customer_company_name || quote.company_name || 'Acme Client'}
                     </td>
                     <td className="py-4 px-6">
-                      <StatusBadge status={quote.status} />
+                      <StatusBadge status={quote.status} repApproved={quote.rep_approved} />
                     </td>
-                    <td className="py-4 px-6 text-white font-bold">
+                    <td className="py-4 px-6 text-neutral-900 font-bold">
                       ${Number(quote.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-4 px-6 text-emerald-400 font-bold">
+                    <td className="py-4 px-6 text-emerald-700 font-bold">
                       {quote.total_margin_pct ? `${Number(quote.total_margin_pct).toFixed(1)}%` : '—'}
                     </td>
                     <td className="py-4 px-6">
                       <span
                         className={`font-bold ${
-                          Number(quote.blended_risk_score || 0) > 0 ? 'text-amber-400' : 'text-neutral-500'
+                          Number(quote.blended_risk_score || 0) > 0 ? 'text-amber-700' : 'text-neutral-400'
                         }`}
                       >
                         {Number(quote.blended_risk_score || 0).toFixed(1)} pts
@@ -279,7 +309,7 @@ export const QuotationListPage: React.FC = () => {
                     <td className="py-4 px-6 text-right">
                       <Link
                         to={`/quotations/${quote.id}/edit`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-[#ff3b30] text-neutral-300 hover:text-white font-mono text-xs transition-colors border border-neutral-800"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-[#ff3b30] text-neutral-700 hover:text-white font-mono text-xs transition-colors border border-neutral-200"
                       >
                         <span>OPEN BUILDER</span>
                         <ArrowRight className="w-3.5 h-3.5" />

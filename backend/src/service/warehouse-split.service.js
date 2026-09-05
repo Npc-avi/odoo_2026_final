@@ -24,14 +24,15 @@ const BASE_SHIPMENT_RATE = 20.00;
  */
 export function calculateOptimalWarehouseSplit(requestedItems, warehouses) {
   // Only physical hardware items require warehouse fulfillment
-  const physicalItems = requestedItems.filter(item => item.lineType === 'hardware' && item.quantity > 0);
+  const physicalItems = requestedItems.filter(item => item.lineType === 'hardware' && Number(item.quantity) > 0);
 
   if (physicalItems.length === 0) {
     return {
       splits: [],
       backorders: [],
       totalShipments: 0,
-      totalShippingCost: 0
+      totalShippingCost: 0,
+      totalWarehouseCost: 0
     };
   }
 
@@ -41,134 +42,89 @@ export function calculateOptimalWarehouseSplit(requestedItems, warehouses) {
     inventoryState[wh.id] = { ...(wh.inventory || {}) };
   }
 
-  // Step 1: Check if any SINGLE warehouse can fulfill 100% of all physical items
-  const singleWarehouseCandidates = warehouses.filter(wh => {
-    return physicalItems.every(item => (inventoryState[wh.id][item.productId] || 0) >= item.quantity);
+  // Sort warehouses primarily by shippingCostWeight ascending, then code/name
+  const sortedWarehouses = [...warehouses].sort((a, b) => {
+    const weightDiff = Number(a.shippingCostWeight || 1.0) - Number(b.shippingCostWeight || 1.0);
+    if (weightDiff !== 0) return weightDiff;
+    return (a.name || '').localeCompare(b.name || '');
   });
 
-  if (singleWarehouseCandidates.length > 0) {
-    // Sort by lowest shipping cost weight
-    singleWarehouseCandidates.sort((a, b) => Number(a.shippingCostWeight) - Number(b.shippingCostWeight));
-    const chosenWh = singleWarehouseCandidates[0];
-    const shippingCost = Number((BASE_SHIPMENT_RATE * Number(chosenWh.shippingCostWeight)).toFixed(2));
+  // Track warehouse allocations: { [warehouseId]: Array<{ quotationItemId, productId, productName, productSku, fulfilledQty, unitCost, lineCost }> }
+  const warehouseAllocations = {};
+  const backorders = [];
 
-    const itemsAllocated = physicalItems.map(item => ({
-      quotationItemId: item.quotationItemId,
-      productId: item.productId,
-      fulfilledQty: item.quantity
-    }));
-
-    return {
-      splits: [
-        {
-          warehouseId: chosenWh.id,
-          warehouseName: chosenWh.name,
-          warehouseCode: chosenWh.code,
-          shippingCost,
-          items: itemsAllocated
-        }
-      ],
-      backorders: [],
-      totalShipments: 1,
-      totalShippingCost: shippingCost
-    };
-  }
-
-  // Step 2: Multi-warehouse allocation algorithm
-  // Track remaining needed quantities for each item
-  const remainingDemand = {};
+  // For each requested physical product:
   for (const item of physicalItems) {
-    remainingDemand[item.quotationItemId] = {
-      quotationItemId: item.quotationItemId,
-      productId: item.productId,
-      qtyNeeded: item.quantity
-    };
-  }
+    let qtyNeeded = Number(item.quantity);
+    const unitCost = Number(item.unitCost || 0);
 
-  const warehouseAllocations = {}; // { [warehouseId]: Array<{ quotationItemId, productId, fulfilledQty }> }
+    // Drain available stock warehouse by warehouse until demand is met
+    for (const wh of sortedWarehouses) {
+      if (qtyNeeded <= 0) break;
 
-  // Greedy loop: In each iteration, pick the warehouse that can satisfy the highest
-  // volume of currently unfulfilled demand, tie-breaking by lowest shipping weight.
-  while (true) {
-    const unfulfilledList = Object.values(remainingDemand).filter(d => d.qtyNeeded > 0);
-    if (unfulfilledList.length === 0) break;
+      const availableInWh = Number(inventoryState[wh.id][item.productId] || 0);
+      if (availableInWh > 0) {
+        const takeQty = Math.min(qtyNeeded, availableInWh);
 
-    let bestWarehouse = null;
-    let maxFulfillableUnits = 0;
-
-    for (const wh of warehouses) {
-      let fulfillableInWh = 0;
-      for (const demand of unfulfilledList) {
-        const availableInWh = inventoryState[wh.id][demand.productId] || 0;
-        fulfillableInWh += Math.min(demand.qtyNeeded, availableInWh);
-      }
-
-      if (fulfillableInWh > maxFulfillableUnits) {
-        maxFulfillableUnits = fulfillableInWh;
-        bestWarehouse = wh;
-      } else if (fulfillableInWh > 0 && fulfillableInWh === maxFulfillableUnits && bestWarehouse) {
-        // Tie-breaker: cheaper shipping weight
-        if (Number(wh.shippingCostWeight) < Number(bestWarehouse.shippingCostWeight)) {
-          bestWarehouse = wh;
+        if (!warehouseAllocations[wh.id]) {
+          warehouseAllocations[wh.id] = [];
         }
-      }
-    }
 
-    // If no warehouse can fulfill any remaining demand, we must stop and backorder the rest
-    if (!bestWarehouse || maxFulfillableUnits === 0) {
-      break;
-    }
-
-    // Allocate from bestWarehouse
-    if (!warehouseAllocations[bestWarehouse.id]) {
-      warehouseAllocations[bestWarehouse.id] = [];
-    }
-
-    for (const demand of unfulfilledList) {
-      const availableInWh = inventoryState[bestWarehouse.id][demand.productId] || 0;
-      const takeQty = Math.min(demand.qtyNeeded, availableInWh);
-
-      if (takeQty > 0) {
-        warehouseAllocations[bestWarehouse.id].push({
-          quotationItemId: demand.quotationItemId,
-          productId: demand.productId,
-          fulfilledQty: takeQty
+        warehouseAllocations[wh.id].push({
+          quotationItemId: item.quotationItemId,
+          productId: item.productId,
+          productName: item.productName || 'Hardware Product',
+          productSku: item.productSku || '',
+          fulfilledQty: takeQty,
+          unitCost: unitCost,
+          lineCost: Number((takeQty * unitCost).toFixed(2))
         });
 
-        demand.qtyNeeded -= takeQty;
-        inventoryState[bestWarehouse.id][demand.productId] -= takeQty;
+        qtyNeeded -= takeQty;
+        inventoryState[wh.id][item.productId] = availableInWh - takeQty;
       }
+    }
+
+    // If all warehouses have been drained and unfulfilled demand remains -> Backorder
+    if (qtyNeeded > 0) {
+      backorders.push({
+        quotationItemId: item.quotationItemId,
+        productId: item.productId,
+        productName: item.productName || 'Hardware Product',
+        productSku: item.productSku || '',
+        backorderQty: qtyNeeded,
+        unitCost: unitCost,
+        backorderCost: Number((qtyNeeded * unitCost).toFixed(2))
+      });
     }
   }
 
-  // Compile final splits
+  // Compile final splits per warehouse
   const splits = [];
   let totalShippingCost = 0;
+  let totalWarehouseCost = 0;
 
-  for (const wh of warehouses) {
+  for (const wh of sortedWarehouses) {
     const allocs = warehouseAllocations[wh.id];
     if (allocs && allocs.length > 0) {
-      const shippingCost = Number((BASE_SHIPMENT_RATE * Number(wh.shippingCostWeight)).toFixed(2));
+      const shippingCost = Number((BASE_SHIPMENT_RATE * Number(wh.shippingCostWeight || 1.0)).toFixed(2));
+      const totalQty = allocs.reduce((acc, it) => acc + Number(it.fulfilledQty || 0), 0);
+      // Warehouse cost calculated by multiplying single product cost with the number of products each warehouse gave
+      const warehouseCost = Number(allocs.reduce((acc, it) => acc + Number(it.lineCost || (it.fulfilledQty * it.unitCost)), 0).toFixed(2));
+
       totalShippingCost += shippingCost;
+      totalWarehouseCost += warehouseCost;
 
       splits.push({
         warehouseId: wh.id,
         warehouseName: wh.name,
         warehouseCode: wh.code,
+        shippingCostWeight: Number(wh.shippingCostWeight || 1.0),
         shippingCost,
-        items: allocs
-      });
-    }
-  }
-
-  // Compile backorders
-  const backorders = [];
-  for (const demand of Object.values(remainingDemand)) {
-    if (demand.qtyNeeded > 0) {
-      backorders.push({
-        quotationItemId: demand.quotationItemId,
-        productId: demand.productId,
-        backorderQty: demand.qtyNeeded
+        totalQty,
+        warehouseCost,
+        items: allocs,
+        estShipments: 1
       });
     }
   }
@@ -177,7 +133,8 @@ export function calculateOptimalWarehouseSplit(requestedItems, warehouses) {
     splits,
     backorders,
     totalShipments: splits.length,
-    totalShippingCost: Number(totalShippingCost.toFixed(2))
+    totalShippingCost: Number(totalShippingCost.toFixed(2)),
+    totalWarehouseCost: Number(totalWarehouseCost.toFixed(2))
   };
 }
 
@@ -186,11 +143,6 @@ export function calculateOptimalWarehouseSplit(requestedItems, warehouses) {
  */
 export function validateManualSplit(requestedItems, manualSplits, warehouses) {
   const physicalItems = requestedItems.filter(item => item.lineType === 'hardware');
-  const demandMap = {};
-  for (const item of physicalItems) {
-    demandMap[item.quotationItemId] = item.quantity;
-  }
-
   const whMap = {};
   for (const wh of warehouses) {
     whMap[wh.id] = wh;
@@ -205,24 +157,38 @@ export function validateManualSplit(requestedItems, manualSplits, warehouses) {
     }
 
     for (const line of split.items) {
-      if (line.fulfilledQty <= 0) {
-        throw new Error(`Fulfilled quantity must be greater than 0 for item ${line.quotationItemId}`);
+      const fulfilled = Number(line.fulfilledQty);
+      if (isNaN(fulfilled) || fulfilled <= 0) {
+        throw new Error(`Fulfilled quantity must be greater than 0 for item ${line.quotationItemId}.`);
       }
 
-      const available = wh.inventory[line.productId] || 0;
-      if (line.fulfilledQty > available) {
-        throw new Error(`Insufficient stock in warehouse '${wh.name}' for product. Requested: ${line.fulfilledQty}, Available: ${available}`);
+      // Check warehouse stock capacity
+      const available = Number(wh.inventory[line.productId] || 0);
+      if (fulfilled > available) {
+        throw new Error(
+          `Warehouse '${wh.name}' does not have enough stock to fulfill this quantity. Requested: ${fulfilled}, Available: ${available}.`
+        );
       }
 
-      fulfilledTotalPerItem[line.quotationItemId] = (fulfilledTotalPerItem[line.quotationItemId] || 0) + line.fulfilledQty;
+      fulfilledTotalPerItem[line.quotationItemId] = (fulfilledTotalPerItem[line.quotationItemId] || 0) + fulfilled;
     }
   }
 
-  // Check for over-allocation
-  for (const [itemId, totalFulfilled] of Object.entries(fulfilledTotalPerItem)) {
-    const needed = demandMap[itemId] || 0;
-    if (totalFulfilled > needed) {
-      throw new Error(`Total allocated quantity (${totalFulfilled}) exceeds ordered quantity (${needed}) for item ${itemId}`);
+  // The quantity fulfilled must strictly equal the ordered quantity (neither more nor less)
+  for (const item of physicalItems) {
+    const totalFulfilled = fulfilledTotalPerItem[item.quotationItemId] || 0;
+    const ordered = Number(item.quantity);
+
+    if (totalFulfilled > ordered) {
+      throw new Error(
+        `Total fulfilled quantity (${totalFulfilled}) exceeds ordered quantity (${ordered}) for product '${item.productName || item.quotationItemId}'.`
+      );
+    }
+
+    if (totalFulfilled < ordered) {
+      throw new Error(
+        `Total fulfilled quantity (${totalFulfilled}) is less than ordered quantity (${ordered}) for product '${item.productName || item.quotationItemId}'. The fulfilled quantity must be exactly equal to the ordered quantity.`
+      );
     }
   }
 

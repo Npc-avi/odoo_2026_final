@@ -1,4 +1,5 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
+import { emitApprovalUpdated } from '../service/socket.service.js';
 import {
   getApprovalAuditTrail,
   processApprovalDecision,
@@ -34,6 +35,8 @@ export async function handleApprovalAction(req, res, next) {
     const decision = await withTenantContext(req.actor, async (client) => {
       return processApprovalDecision(client, req.actor, id, req.body);
     });
+
+    emitApprovalUpdated(req.actor.tenantId, id, { decision, status: decision.newStatus });
 
     return res.status(200).json({
       message: `Quotation status updated to '${decision.newStatus}'.`,

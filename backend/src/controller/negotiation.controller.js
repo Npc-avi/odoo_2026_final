@@ -1,5 +1,9 @@
 import { withTenantContext, withElevatedTenantContext } from '../middleware/tenant-context.middleware.js';
 import {
+  emitNegotiationUpdated,
+  emitQuotationUpdated
+} from '../service/socket.service.js';
+import {
   getNegotiationsByQuote,
   addCustomerPortalNegotiation,
   addStaffNegotiation,
@@ -27,9 +31,11 @@ export async function listNegotiationThread(req, res, next) {
 export async function submitPortalNegotiation(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
-    const entry = await withTenantContext(req.actor, async (client) => {
+    const entry = await withElevatedTenantContext(req.actor, async (client) => {
       return addCustomerPortalNegotiation(client, req.actor, id, req.body);
     });
+
+    emitNegotiationUpdated(req.actor.tenantId, id, { negotiation: entry, status: 'under_negotiation' });
 
     return res.status(201).json({
       message: entry.triggers_approval_reset
@@ -52,6 +58,8 @@ export async function submitStaffNegotiation(req, res, next) {
       return addStaffNegotiation(client, req.actor, id, req.body);
     });
 
+    emitNegotiationUpdated(req.actor.tenantId, id, { negotiation: entry, status: 'under_negotiation' });
+
     return res.status(201).json({
       message: 'Negotiation response posted.',
       negotiation: entry
@@ -71,6 +79,8 @@ export async function confirmQuotationPortal(req, res, next) {
     const result = await withElevatedTenantContext(req.actor, async (client) => {
       return customerConfirmQuotation(client, id);
     });
+
+    emitQuotationUpdated(req.actor.tenantId, id, { confirmation: result, status: result.status });
 
     return res.status(200).json({
       message: result.message,

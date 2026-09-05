@@ -34,8 +34,10 @@ export function useApprovals() {
     try {
       const res = await submitApprovalActionApi(id, action, justification);
       const newStatus = res?.decision?.newStatus;
-      if (newStatus === 'pending_manager') {
-        toast.info('Endorsed by Sales Rep. Escalated to Sales Manager (discount exceeds 5.00%).');
+      if (action === 'approved' && newStatus === 'under_negotiation') {
+        toast.info('Rep Approved! Request exceeds package standard limit—remaining in negotiation awaiting Sales Manager approval.');
+      } else if (newStatus === 'pending_manager') {
+        toast.info('Endorsed by Sales Rep. Escalated to Sales Manager.');
       } else if (newStatus === 'confirmed') {
         toast.success('Quotation approved and confirmed!');
       } else if (newStatus === 'under_negotiation') {

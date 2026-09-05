@@ -49,7 +49,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
     CREATE TYPE quote_status AS ENUM (
         'draft', 'pending_manager', 'pending_finance', 'approved', 'sent',
-        'under_negotiation', 'confirmed', 'rejected', 'stalled'
+        'under_negotiation', 'confirmed', 'in_fulfillment', 'fulfillment', 'rejected', 'stalled'
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -622,8 +622,11 @@ BEGIN
       AND v_blended_score BETWEEN min_discount_pct AND max_discount_pct
     LIMIT 1;
 
-    IF v_blended_score = 0 THEN
+    -- Draft quotations must strictly remain in draft until explicitly submitted for approval.
+    IF v_current_status = 'draft' THEN
         v_new_status := 'draft';
+    ELSIF v_blended_score = 0 THEN
+        v_new_status := v_current_status;
     ELSIF v_requires_finance THEN
         v_new_status := 'pending_finance';
     ELSIF v_requires_manager THEN
@@ -868,7 +871,7 @@ DECLARE
 BEGIN
     SELECT status INTO v_status_before FROM quotations WHERE id = p_quotation_id;
 
-    IF v_status_before NOT IN ('sent', 'under_negotiation') THEN
+    IF v_status_before NOT IN ('sent', 'under_negotiation', 'pending_manager', 'pending_finance') THEN
         RAISE EXCEPTION 'Quotation % cannot be confirmed from status %', p_quotation_id, v_status_before;
     END IF;
 
@@ -1137,7 +1140,16 @@ CREATE POLICY quotation_customer_policy ON quotations
         tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
         AND current_setting('app.current_actor_type', true) = 'customer_portal'
         AND customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::UUID
-        AND status IN ('sent', 'under_negotiation', 'confirmed')
+        AND status NOT IN ('draft'::quote_status)
+    );
+DROP POLICY IF EXISTS quotation_customer_update_policy ON quotations;
+CREATE POLICY quotation_customer_update_policy ON quotations
+    FOR UPDATE
+    USING (
+        tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::UUID
+        AND current_setting('app.current_actor_type', true) = 'customer_portal'
+        AND customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::UUID
+        AND status NOT IN ('draft'::quote_status)
     );
 
 -- Quotation items
@@ -1159,7 +1171,7 @@ CREATE POLICY quotation_items_customer_policy ON quotation_items
         AND quotation_id IN (
             SELECT id FROM quotations
             WHERE customer_id = NULLIF(current_setting('app.current_customer_id', true), '')::UUID
-              AND status IN ('sent', 'under_negotiation', 'confirmed')
+              AND status NOT IN ('draft'::quote_status)
         )
     );
 

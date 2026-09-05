@@ -16,8 +16,9 @@ export const CREATE_WAREHOUSE = `
 
 export const LIST_WAREHOUSE_INVENTORY = `
   SELECT wi.id, wi.warehouse_id, wi.product_id, wi.qty_on_hand, wi.qty_reserved, wi.qty_available,
-         w.name AS warehouse_name, w.code AS warehouse_code,
-         p.name AS product_name, p.sku AS product_sku
+         w.name AS warehouse_name, w.code AS warehouse_code, w.shipping_cost_weight,
+         p.name AS product_name, p.sku AS product_sku, p.unit_cost, p.base_price,
+         ROUND((COALESCE(p.unit_cost, 0.00) * COALESCE(w.shipping_cost_weight, 1.00)), 2) AS warehouse_cost
   FROM warehouse_inventory wi
   JOIN warehouses w ON w.id = wi.warehouse_id
   JOIN products p ON p.id = wi.product_id

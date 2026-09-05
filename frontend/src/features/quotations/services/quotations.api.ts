@@ -56,6 +56,21 @@ export async function createQuotationApi(payload: {
   }
 }
 
+export async function updateQuotationApi(
+  id: string,
+  payload: {
+    customerId?: string;
+    promisedDeliveryDate?: string;
+  }
+) {
+  try {
+    const res = await quotationsApi.patch(`/${id}`, payload);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to update quotation draft.' };
+  }
+}
+
 export async function submitQuotationForApprovalApi(quotationId: string) {
   try {
     const res = await quotationsApi.post(`/${quotationId}/submit-approval`);

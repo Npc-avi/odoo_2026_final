@@ -14,7 +14,8 @@ import {
   removePortalItem,
   listCustomers,
   sendQuotation,
-  submitQuotationApproval
+  submitQuotationApproval,
+  updateQuotation
 } from '../controller/quotation.controller.js';
 import {
   validateCreateQuotation,
@@ -43,6 +44,7 @@ router.get('/customers', listCustomers);
 router.get('/', listQuotations);
 router.get('/:id', getQuotation);
 router.post('/', validateCreateQuotation, createQuotation);
+router.patch('/:id', updateQuotation);
 router.post('/:id/items', validateAddQuotationItem, addItem);
 router.patch('/items/:itemId', validateUpdateQuotationItem, editItem);
 router.delete('/items/:itemId', removeItem);

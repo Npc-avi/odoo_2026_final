@@ -133,31 +133,31 @@ export const Dashboard: React.FC = () => {
         {metrics.map((m) => (
           <div
             key={m.index}
-            className="rounded-3xl border border-neutral-800 bg-[#09090b] p-6 sm:p-8 flex flex-col justify-between hover:border-neutral-700 transition-all shadow-lg"
+            className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 flex flex-col justify-between hover:border-neutral-300 hover:shadow-md transition-all shadow-sm"
           >
             <div>
-              <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-neutral-400 mb-6 border-b border-neutral-800 pb-3">
-                <div className="flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800">
+              <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-neutral-500 mb-6 border-b border-neutral-100 pb-3">
+                <div className="flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200">
                   <span className="text-[#ff3b30] font-bold text-[9px]">METRIC</span>
                 </div>
-                <span className="font-mono text-xs font-bold text-neutral-400 px-2.5 py-0.5 rounded-full bg-neutral-900">
+                <span className="font-mono text-xs font-bold text-neutral-600 px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200">
                   {m.index}
                 </span>
               </div>
 
-              <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-400 mb-2">
+              <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-500 mb-2">
                 {m.title}
               </div>
-              <div className="font-display font-black text-3xl sm:text-4xl text-white tracking-tight mb-2">
+              <div className="font-display font-black text-3xl sm:text-4xl text-neutral-900 tracking-tight mb-2">
                 {m.value}
               </div>
-              <p className="text-xs text-neutral-400 font-mono leading-relaxed">
+              <p className="text-xs text-neutral-500 font-mono leading-relaxed">
                 {m.tagline}
               </p>
             </div>
 
-            <div className="pt-6 border-t border-neutral-800/80 mt-6 flex items-center justify-between">
-              <span className={`text-[10px] font-mono font-bold tracking-widest uppercase ${m.accentColor}`}>
+            <div className="pt-6 border-t border-neutral-100 mt-6 flex items-center justify-between">
+              <span className={`text-[10px] font-mono font-bold tracking-widest uppercase ${m.accentColor === 'text-emerald-400' ? 'text-emerald-700' : m.accentColor === 'text-cyan-400' ? 'text-cyan-700' : m.accentColor === 'text-purple-400' ? 'text-purple-700' : 'text-[#ff3b30]'}`}>
                 {m.status}
               </span>
               <span className="w-2 h-2 rounded-full bg-[#ff3b30] animate-pulse" />
@@ -167,20 +167,20 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Screen 2 Recent Quotations Pipeline Table */}
-      <div className="rounded-3xl border border-neutral-800 bg-[#09090b] p-6 sm:p-8 space-y-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+      <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-6 shadow-sm">
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase mb-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase mb-1">
               RECENT QUOTATION PIPELINE
             </div>
-            <h3 className="font-display font-black text-xl text-white uppercase tracking-tight">
+            <h3 className="font-display font-black text-xl text-neutral-900 uppercase tracking-tight">
               ACTIVE DEALS IN FLIGHT
             </h3>
           </div>
 
           <Link
             to="/quotations"
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-500 hover:text-neutral-900 transition-colors"
           >
             <span>VIEW ALL PIPELINE</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -188,15 +188,15 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="py-12 text-center font-mono text-xs text-neutral-400 space-y-2">
-            <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-[#ff3b30] animate-spin mx-auto" />
+          <div className="py-12 text-center font-mono text-xs text-neutral-500 space-y-2">
+            <div className="w-6 h-6 rounded-full border-2 border-neutral-200 border-t-[#ff3b30] animate-spin mx-auto" />
             <p>SYNCING PIPELINE LEDGER...</p>
           </div>
         ) : quotations.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
               <thead>
-                <tr className="border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-wider">
+                <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-500 uppercase text-[10px] tracking-wider">
                   <th className="py-3 px-4">QUOTE CODE</th>
                   <th className="py-3 px-4">CUSTOMER</th>
                   <th className="py-3 px-4">ASSIGNED REP</th>
@@ -206,20 +206,20 @@ export const Dashboard: React.FC = () => {
                   <th className="py-3 px-4 text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-800/60">
+              <tbody className="divide-y divide-neutral-100 text-neutral-900">
                 {quotations.slice(0, 5).map((q) => (
-                  <tr key={q.id} className="hover:bg-neutral-900/30 transition-colors">
-                    <td className="py-4 px-4 font-bold text-white">
+                  <tr key={q.id} className="hover:bg-neutral-50/80 transition-colors">
+                    <td className="py-4 px-4 font-bold text-neutral-900">
                       {q.quotation_code || q.quotation_number || q.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="py-4 px-4 text-neutral-300">
+                    <td className="py-4 px-4 text-neutral-700">
                       {q.customer_company_name || q.company_name || 'Corporate Account'}
                     </td>
-                    <td className="py-4 px-4 text-neutral-400">{q.assigned_rep_name || 'Rachel Rep'}</td>
-                    <td className="py-4 px-4 font-bold text-white">
+                    <td className="py-4 px-4 text-neutral-500">{q.assigned_rep_name || 'Rachel Rep'}</td>
+                    <td className="py-4 px-4 font-bold text-neutral-900">
                       ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-4 px-4 text-emerald-400 font-bold">
+                    <td className="py-4 px-4 text-emerald-700 font-bold">
                       {Number(q.total_margin_pct || 0).toFixed(1)}%
                     </td>
                     <td className="py-4 px-4">
@@ -228,7 +228,7 @@ export const Dashboard: React.FC = () => {
                     <td className="py-4 px-4 text-right">
                       <Link
                         to={`/quotations/${q.id}/edit`}
-                        className="inline-flex items-center gap-1 text-xs font-mono text-[#ff3b30] hover:text-red-400 font-bold"
+                        className="inline-flex items-center gap-1 text-xs font-mono text-[#ff3b30] hover:text-red-700 font-bold"
                       >
                         <span>OPEN BUILDER</span>
                         <ArrowRight className="w-3 h-3" />
@@ -240,8 +240,8 @@ export const Dashboard: React.FC = () => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 border border-dashed border-neutral-800 rounded-2xl">
-            <p className="text-xs font-mono text-neutral-400 uppercase">NO QUOTATIONS IN PIPELINE</p>
+          <div className="text-center py-12 border border-dashed border-neutral-300 rounded-2xl">
+            <p className="text-xs font-mono text-neutral-600 uppercase font-bold">NO QUOTATIONS IN PIPELINE</p>
             <p className="text-[11px] font-mono text-neutral-500 mt-1">
               Click &quot;Create Quotation&quot; above to initialize your first deal.
             </p>

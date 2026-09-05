@@ -35,29 +35,38 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
     throw err;
   }
 
-  // 2. Validate reviewer role permissions
-  if (prevStatus === 'pending_manager' && !['sales_manager', 'admin', 'sales_rep'].includes(actor.role)) {
-    const err = new Error('Sales Manager or Admin role is required to review this quotation.');
+  // 2. Validate reviewer role permissions & enforce Admin view-only
+  if (actor.role === 'admin') {
+    const err = new Error('Administrators have view-only access to approvals. Decisions must be made by Sales Representatives or Sales Managers.');
     err.status = 403;
     throw err;
   }
 
-  if (prevStatus === 'pending_finance' && !['finance', 'admin'].includes(actor.role)) {
-    const err = new Error('Finance or Admin role is required to review this quotation.');
+  if (prevStatus === 'pending_manager' && !['sales_manager', 'sales_rep'].includes(actor.role)) {
+    const err = new Error('Sales Manager or Sales Representative role is required to review this quotation.');
     err.status = 403;
     throw err;
   }
 
-  // 3. Check line discount against Rep self-authorization limit (5.00%)
+  if (prevStatus === 'pending_finance' && actor.role !== 'finance') {
+    const err = new Error('Finance role is required to review this quotation.');
+    err.status = 403;
+    throw err;
+  }
+
+  // 3. Check line discount against customer package / tier standard ceiling
+  // Standard limits: Gold: 15%, Platinum: 20%, Silver: 10%, Bronze: 5%
+  const tierCeilings = { Platinum: 20.0, Gold: 15.0, Silver: 10.0, Bronze: 5.0 };
+  const standardPackageLimit = tierCeilings[quote.customer_tier] || 15.0;
+
   const maxDiscountRes = await client.query(
     `SELECT COALESCE(MAX(applied_discount_pct), 0.00) AS max_discount FROM quotation_items WHERE quotation_id = $1`,
     [quotationId]
   );
   const maxDiscount = Number(maxDiscountRes.rows[0]?.max_discount || 0);
-  const repLimit = 5.00;
-  const exceedsRepLimit = maxDiscount > repLimit;
+  const exceedsStandardPackageLimit = maxDiscount > standardPackageLimit || Number(quote.blended_risk_score || 0) > 0;
 
-  // 4. Determine next status based on role and discount limits
+  // 4. Determine next status based on role and package standard discount limits
   let newStatus;
   let finalJustification = justification;
 
@@ -67,16 +76,17 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
     newStatus = 'under_negotiation';
   } else if (action === 'approved') {
     if (actor.role === 'sales_rep') {
-      if (exceedsRepLimit) {
-        // Discount limit exceeds rep limit (>5%) -> needs approval of both Sales Rep and Manager!
-        newStatus = 'pending_manager';
-        finalJustification = `${justification} (Endorsed by Sales Rep. Escalated to Sales Manager: line discount ${maxDiscount}% exceeds 5.00% rep limit)`;
+      if (exceedsStandardPackageLimit) {
+        // Any request above set standard of the discount of particular package (e.g. Gold >15%) needs manager approval.
+        // Only show rep approved when service rep approves, and still show into negotiation unless manager also approves!
+        newStatus = 'under_negotiation';
+        finalJustification = `${justification} (Rep Approved. Request discount of ${maxDiscount}% exceeds ${quote.customer_tier} standard limit of ${standardPackageLimit}%. Kept in negotiation awaiting Manager approval)`;
       } else {
-        // Within rep limit (<=5%) -> approved directly by Sales Representative!
+        // Within package standard -> rep can approve directly
         newStatus = 'confirmed';
-        finalJustification = `${justification} (Approved directly by Sales Representative within 5.00% limit)`;
+        finalJustification = `${justification} (Approved directly by Sales Representative within ${quote.customer_tier} standard limit of ${standardPackageLimit}%)`;
       }
-    } else if (actor.role === 'sales_manager' || actor.role === 'admin') {
+    } else if (actor.role === 'sales_manager') {
       // Sales Manager signs off -> confirmed (or escalated to finance if policy requires)
       const chainRes = await client.query(CHECK_APPROVAL_CHAIN_FOR_TIER, [
         actor.tenantId,
@@ -89,6 +99,7 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
         newStatus = 'pending_finance';
       } else {
         newStatus = 'confirmed';
+        finalJustification = `${justification} (Manager Approved - Quotation Confirmed)`;
       }
     } else {
       // Finance or other authorized role

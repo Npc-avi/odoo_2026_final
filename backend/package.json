@@ -30,9 +30,11 @@
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "socket.io-client": "^4.8.3"
   }
 }

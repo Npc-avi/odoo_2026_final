@@ -29,14 +29,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
       <div className="min-h-screen bg-white text-[#111111] relative flex flex-col">
         <AppNavbar />
         <main className="flex-1 pt-28 pb-20 px-4 sm:px-8 max-w-4xl mx-auto flex items-center justify-center">
-          <div className="w-full text-center p-8 sm:p-12 rounded-3xl border border-neutral-800 bg-[#09090b] text-white shadow-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-[#ff3b30] font-mono text-[10px] font-bold tracking-widest uppercase">
+          <div className="w-full text-center p-8 sm:p-12 rounded-3xl border border-neutral-200 bg-white text-neutral-900 shadow-sm space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-[#ff3b30] font-mono text-[10px] font-bold tracking-widest uppercase">
               SECURITY EXCEPTION // 403
             </div>
-            <h2 className="font-display font-black text-3xl sm:text-4xl text-white uppercase tracking-tight">
+            <h2 className="font-display font-black text-3xl sm:text-4xl text-neutral-900 uppercase tracking-tight">
               ACCESS RESTRICTED
             </h2>
-            <p className="text-xs sm:text-sm text-neutral-400 font-mono max-w-md mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-neutral-600 font-mono max-w-md mx-auto leading-relaxed">
               Your identity role ({user.role}) does not have clearance to access this governance module.
             </p>
           </div>
