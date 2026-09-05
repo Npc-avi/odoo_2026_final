@@ -32,9 +32,21 @@ export function useApprovals() {
     justification = 'Decision recorded via Approval Chain'
   ) => {
     try {
-      await submitApprovalActionApi(id, action, justification);
-      toast.success(`Quotation action '${action}' processed successfully!`);
+      const res = await submitApprovalActionApi(id, action, justification);
+      const newStatus = res?.decision?.newStatus;
+      if (newStatus === 'pending_manager') {
+        toast.info('Endorsed by Sales Rep. Escalated to Sales Manager (discount exceeds 5.00%).');
+      } else if (newStatus === 'confirmed') {
+        toast.success('Quotation approved and confirmed!');
+      } else if (newStatus === 'under_negotiation') {
+        toast.info('Returned for revision. Status set to Negotiating.');
+      } else if (newStatus === 'rejected') {
+        toast.error('Quotation rejected.');
+      } else {
+        toast.success(res?.message || `Action '${action}' processed successfully.`);
+      }
       await loadApprovals();
+      return res;
     } catch (err: any) {
       toast.error(err.message || 'Failed to process approval decision.');
       throw err;

@@ -48,15 +48,36 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
     throw err;
   }
 
-  // 3. Determine next status
+  // 3. Check line discount against Rep self-authorization limit (5.00%)
+  const maxDiscountRes = await client.query(
+    `SELECT COALESCE(MAX(applied_discount_pct), 0.00) AS max_discount FROM quotation_items WHERE quotation_id = $1`,
+    [quotationId]
+  );
+  const maxDiscount = Number(maxDiscountRes.rows[0]?.max_discount || 0);
+  const repLimit = 5.00;
+  const exceedsRepLimit = maxDiscount > repLimit;
+
+  // 4. Determine next status based on role and discount limits
   let newStatus;
+  let finalJustification = justification;
+
   if (action === 'rejected') {
     newStatus = 'rejected';
   } else if (action === 'returned_for_revision') {
     newStatus = 'under_negotiation';
   } else if (action === 'approved') {
-    if (prevStatus === 'pending_manager') {
-      // Check if multi-level approval requires finance review as well
+    if (actor.role === 'sales_rep') {
+      if (exceedsRepLimit) {
+        // Discount limit exceeds rep limit (>5%) -> needs approval of both Sales Rep and Manager!
+        newStatus = 'pending_manager';
+        finalJustification = `${justification} (Endorsed by Sales Rep. Escalated to Sales Manager: line discount ${maxDiscount}% exceeds 5.00% rep limit)`;
+      } else {
+        // Within rep limit (<=5%) -> approved directly by Sales Representative!
+        newStatus = 'confirmed';
+        finalJustification = `${justification} (Approved directly by Sales Representative within 5.00% limit)`;
+      }
+    } else if (actor.role === 'sales_manager' || actor.role === 'admin') {
+      // Sales Manager signs off -> confirmed (or escalated to finance if policy requires)
       const chainRes = await client.query(CHECK_APPROVAL_CHAIN_FOR_TIER, [
         actor.tenantId,
         quote.customer_tier,
@@ -64,28 +85,28 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
       ]);
       const chain = chainRes.rows[0];
 
-      if (chain && chain.requires_finance) {
+      if (chain && chain.requires_finance && prevStatus === 'pending_manager') {
         newStatus = 'pending_finance';
       } else {
         newStatus = 'confirmed';
       }
     } else {
-      // Approved by finance, sales rep, or manager
+      // Finance or other authorized role
       newStatus = 'confirmed';
     }
   }
 
-  // 4. Update quotation status
+  // 5. Update quotation status
   await client.query(UPDATE_QUOTATION_STATUS, [quotationId, newStatus]);
 
-  // 5. Insert immutable audit log entry
+  // 6. Insert immutable audit log entry
   const auditRes = await client.query(INSERT_APPROVAL_AUDIT_LOG, [
     actor.tenantId,
     quotationId,
     actor.userId,
     actor.role,
     action,
-    justification,
+    finalJustification,
     prevStatus,
     newStatus
   ]);

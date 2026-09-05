@@ -1,4 +1,4 @@
-import { withTenantContext } from '../middleware/tenant-context.middleware.js';
+import { withTenantContext, withElevatedTenantContext } from '../middleware/tenant-context.middleware.js';
 import {
   getNegotiationsByQuote,
   addCustomerPortalNegotiation,
@@ -68,7 +68,7 @@ export async function submitStaffNegotiation(req, res, next) {
 export async function confirmQuotationPortal(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
-    const result = await withTenantContext(req.actor, async (client) => {
+    const result = await withElevatedTenantContext(req.actor, async (client) => {
       return customerConfirmQuotation(client, id);
     });
 

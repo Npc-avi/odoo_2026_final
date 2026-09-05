@@ -83,3 +83,34 @@ export async function withSystemContext(fn) {
     client.release();
   }
 }
+
+/**
+ * Executes operations on behalf of an authenticated actor with elevated permissions
+ * while strictly setting and enforcing tenant context.
+ * 
+ * @param {Object} actor - Authenticated actor with tenantId
+ * @param {(client: import('pg').PoolClient) => Promise<any>} fn 
+ */
+export async function withElevatedTenantContext(actor, fn) {
+  if (!actor || !actor.tenantId) {
+    const err = new Error('Invalid actor context provided for tenant execution.');
+    err.status = 401;
+    throw err;
+  }
+
+  const client = await adminPool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`SELECT set_config('app.current_tenant_id', $1, true)`, [actor.tenantId]);
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {}
+    throw err;
+  } finally {
+    client.release();
+  }
+}

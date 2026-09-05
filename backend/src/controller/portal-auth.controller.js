@@ -1,5 +1,5 @@
 import argon2 from 'argon2';
-import { withTenantContext, withSystemContext } from '../middleware/tenant-context.middleware.js';
+import { withTenantContext, withSystemContext, withElevatedTenantContext } from '../middleware/tenant-context.middleware.js';
 import {
   findPortalUserByEmail,
   setPortalMagicLinkToken,
@@ -188,7 +188,7 @@ export async function verifyMagicLink(req, res, next) {
  */
 export async function getPortalMe(req, res, next) {
   try {
-    const profile = await withTenantContext(req.actor, async (client) => {
+    const profile = await withElevatedTenantContext(req.actor, async (client) => {
       return getPortalUserProfile(client, req.actor.portalUserId, req.actor.tenantId);
     });
 

@@ -106,19 +106,20 @@ export const GET_UPSELL_SUGGESTIONS = `
 export const GET_PORTAL_QUOTATION = `
   SELECT q.id AS quotation_id, q.tenant_id, q.quotation_code, q.customer_id, q.status,
          q.subtotal_amount, q.total_amount, q.promised_delivery_date, q.created_at,
-         qi.id AS item_id, p.name AS product_name, p.description AS product_description,
+         qi.id AS item_id, p.id AS product_id, p.name AS product_name, p.description AS product_description,
          qi.quantity, qi.unit_list_price, qi.applied_discount_pct,
          qi.calculated_unit_price, qi.line_total
   FROM quotations q
   LEFT JOIN quotation_items qi ON q.id = qi.quotation_id
   LEFT JOIN products p ON qi.product_id = p.id
-  WHERE q.id = $1;
+  WHERE q.id = $1 AND q.status NOT IN ('draft'::quote_status);
 `;
 
 export const LIST_PORTAL_QUOTATIONS = `
   SELECT q.id AS quotation_id, q.tenant_id, q.quotation_code, q.customer_id, q.status,
          q.subtotal_amount, q.total_amount, q.promised_delivery_date, q.created_at
   FROM quotations q
+  WHERE q.status NOT IN ('draft'::quote_status)
   ORDER BY q.created_at DESC;
 `;
 

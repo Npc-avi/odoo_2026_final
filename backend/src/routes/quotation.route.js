@@ -9,6 +9,9 @@ import {
   getUpsells,
   listCustomerQuotations,
   getCustomerQuotation,
+  addPortalItem,
+  editPortalItem,
+  removePortalItem,
   listCustomers,
   sendQuotation,
   submitQuotationApproval
@@ -27,6 +30,9 @@ const router = Router();
 // ==========================================
 router.get('/portal/my-quotations', verifyPortalToken, listCustomerQuotations);
 router.get('/portal/:id', verifyPortalToken, getCustomerQuotation);
+router.post('/portal/:id/items', verifyPortalToken, addPortalItem);
+router.patch('/portal/items/:itemId', verifyPortalToken, editPortalItem);
+router.delete('/portal/items/:itemId', verifyPortalToken, removePortalItem);
 
 // ==========================================
 // Staff Quotation Builder Endpoints

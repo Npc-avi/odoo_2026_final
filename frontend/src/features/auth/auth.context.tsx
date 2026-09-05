@@ -45,40 +45,84 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const checkSession = useCallback(async () => {
     setCheckingAuth(true);
     try {
-      // 1. Try staff session first
-      try {
-        const staffData = await getStaffMeApi();
-        if (staffData?.user) {
-          setUser({
-            ...staffData.user,
-            role: staffData.user.role as UserRole
-          });
-          setCheckingAuth(false);
-          return;
-        }
-      } catch (_) {
-        // Staff check failed, try portal session
-      }
+      const isPortalRoute = window.location.pathname.startsWith('/portal');
+      const activeMode = localStorage.getItem('dealflow_active_mode');
+      const preferPortal = isPortalRoute || activeMode === 'portal';
 
-      // 2. Try customer portal session
-      try {
-        const portalData = await getPortalMeApi();
-        if (portalData?.portalUser) {
-          setUser({
-            id: portalData.portalUser.id,
-            email: portalData.portalUser.email,
-            role: 'customer_portal',
-            fullName: portalData.portalUser.contactName,
-            companyName: portalData.portalUser.companyName,
-            customerId: portalData.portalUser.customerId,
-            tenantId: portalData.portalUser.tenantId,
-            tenantName: portalData.portalUser.tenantName,
-            customerTier: portalData.portalUser.customerTier
-          });
+      if (preferPortal) {
+        // 1. Try customer portal session first
+        try {
+          const portalData = await getPortalMeApi();
+          if (portalData?.portalUser) {
+            setUser({
+              id: portalData.portalUser.id,
+              email: portalData.portalUser.email,
+              role: 'customer_portal',
+              fullName: portalData.portalUser.contactName,
+              companyName: portalData.portalUser.companyName,
+              customerId: portalData.portalUser.customerId,
+              tenantId: portalData.portalUser.tenantId,
+              tenantName: portalData.portalUser.tenantName,
+              customerTier: portalData.portalUser.customerTier
+            });
+            setCheckingAuth(false);
+            return;
+          }
+        } catch (_) {}
+
+        // If on portal route or active mode is portal, do NOT fallback to staff session!
+        if (isPortalRoute || activeMode === 'portal') {
+          setUser(null);
           setCheckingAuth(false);
           return;
         }
-      } catch (_) {}
+
+        // Fallback to staff session only if not a portal route
+        try {
+          const staffData = await getStaffMeApi();
+          if (staffData?.user) {
+            setUser({
+              ...staffData.user,
+              role: staffData.user.role as UserRole
+            });
+            setCheckingAuth(false);
+            return;
+          }
+        } catch (_) {}
+      } else {
+        // 1. Try staff session first
+        try {
+          const staffData = await getStaffMeApi();
+          if (staffData?.user) {
+            setUser({
+              ...staffData.user,
+              role: staffData.user.role as UserRole
+            });
+            setCheckingAuth(false);
+            return;
+          }
+        } catch (_) {}
+
+        // 2. Fallback to customer portal session
+        try {
+          const portalData = await getPortalMeApi();
+          if (portalData?.portalUser) {
+            setUser({
+              id: portalData.portalUser.id,
+              email: portalData.portalUser.email,
+              role: 'customer_portal',
+              fullName: portalData.portalUser.contactName,
+              companyName: portalData.portalUser.companyName,
+              customerId: portalData.portalUser.customerId,
+              tenantId: portalData.portalUser.tenantId,
+              tenantName: portalData.portalUser.tenantName,
+              customerTier: portalData.portalUser.customerTier
+            });
+            setCheckingAuth(false);
+            return;
+          }
+        } catch (_) {}
+      }
 
       setUser(null);
     } finally {
@@ -93,6 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginStaff = async (creds: { email: string; password: string }) => {
     setLoading(true);
     try {
+      localStorage.setItem('dealflow_active_mode', 'staff');
       const res = await loginStaffApi(creds);
       if (res.user) {
         setUser({
@@ -108,6 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginPortal = async (creds: { email: string; password: string }) => {
     setLoading(true);
     try {
+      localStorage.setItem('dealflow_active_mode', 'portal');
       const res = await loginPortalApi(creds);
       if (res.portalUser) {
         setUser({
@@ -130,6 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const registerCompany = async (payload: RegisterCompanyPayload) => {
     setLoading(true);
     try {
+      localStorage.setItem('dealflow_active_mode', 'staff');
       const res = await registerCompanyApi(payload);
       if (res.user) {
         setUser({
@@ -149,6 +196,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     setLoading(true);
     try {
+      localStorage.removeItem('dealflow_active_mode');
       if (user?.role === 'customer_portal') {
         await logoutPortalApi();
       } else {

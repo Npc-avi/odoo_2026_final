@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { StatusBadge } from '@/components/StatusBadge';
 import { FileText, RefreshCw, AlertTriangle, ArrowUpRight } from 'lucide-react';
@@ -6,6 +7,7 @@ import { FileText, RefreshCw, AlertTriangle, ArrowUpRight } from 'lucide-react';
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const CustomerQuotesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export const CustomerQuotesPage: React.FC = () => {
                   return (
                     <tr
                       key={targetId}
-                      onClick={() => window.location.assign(`/portal/quotations/${targetId}`)}
+                      onClick={() => navigate(`/portal/quotations/${targetId}`)}
                       className="hover:bg-[#111] transition-colors group cursor-pointer"
                     >
                       <td className="px-6 py-4 font-bold text-[#ff3b30]">

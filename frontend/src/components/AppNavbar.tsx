@@ -21,7 +21,7 @@ export const AppNavbar: React.FC = () => {
     { label: 'DASHBOARD', path: '/dashboard' },
     { label: 'QUOTATIONS', path: '/quotations' },
     { label: 'RFQS', path: '/rfqs' },
-    { label: 'APPROVALS', path: '/approvals', roles: ['admin', 'sales_manager', 'finance'] },
+    { label: 'APPROVALS', path: '/approvals', roles: ['admin', 'sales_manager', 'finance', 'sales_rep'] },
     { label: 'CATALOG', path: '/catalog' },
     { label: 'GOVERNANCE', path: '/governance', roles: ['admin', 'sales_manager'] },
     { label: 'FULFILLMENT', path: '/fulfillment' },

@@ -24,7 +24,7 @@ router.use(verifyStaffToken);
 router.get('/:id/audit', getAuditTrail);
 router.post(
   '/:id/action',
-  requireStaffRole('admin', 'sales_manager', 'finance'),
+  requireStaffRole('admin', 'sales_manager', 'finance', 'sales_rep'),
   validateApprovalAction,
   handleApprovalAction
 );

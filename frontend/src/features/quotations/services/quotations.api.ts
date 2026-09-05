@@ -191,3 +191,62 @@ export async function confirmCustomerQuotationApi(quotationId: string) {
     throw error.response?.data || { message: 'Failed to confirm quotation.' };
   }
 }
+
+// ==========================================
+// Customer Portal Line-Item Negotiation
+// ==========================================
+
+export async function fetchPortalCatalogApi() {
+  try {
+    const res = await axios.get(`${BASE_URL}/catalog/portal`, { withCredentials: true });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch catalog.' };
+  }
+}
+
+export async function addPortalQuotationItemApi(
+  quotationId: string,
+  itemData: {
+    productId: string;
+    variantId?: string | null;
+    lineType: 'hardware' | 'service' | 'subscription';
+    quantity: number;
+    appliedDiscountPct?: number;
+    lineNotes?: string;
+  }
+) {
+  try {
+    const res = await quotationsApi.post(`/portal/${quotationId}/items`, itemData);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to add item to proposal.' };
+  }
+}
+
+export async function updatePortalQuotationItemApi(
+  itemId: string,
+  updateData: {
+    quantity?: number;
+    appliedDiscountPct?: number;
+    variantId?: string | null;
+    lineNotes?: string;
+  }
+) {
+  try {
+    const res = await quotationsApi.patch(`/portal/items/${itemId}`, updateData);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to update proposal item.' };
+  }
+}
+
+export async function deletePortalQuotationItemApi(itemId: string) {
+  try {
+    const res = await quotationsApi.delete(`/portal/items/${itemId}`);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to remove proposal item.' };
+  }
+}
+

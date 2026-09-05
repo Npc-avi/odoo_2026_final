@@ -1,4 +1,4 @@
-import { withTenantContext } from '../middleware/tenant-context.middleware.js';
+import { withTenantContext, withElevatedTenantContext } from '../middleware/tenant-context.middleware.js';
 import {
   getQuotationsStaff,
   getQuotationDetailStaff,
@@ -252,4 +252,151 @@ export async function submitQuotationApproval(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Customer Portal: Add line item to quotation during negotiation
+ */
+export async function addPortalItem(req, res, next) {
+  try {
+    const { id } = req.params; // quotation_id
+    const result = await withElevatedTenantContext(req.actor, async (client) => {
+      // 1. Verify quotation exists, belongs to this customer, and isn't settled
+      const qCheck = await client.query(
+        `SELECT id, customer_id, status FROM quotations WHERE id = $1 AND tenant_id = $2`,
+        [id, req.actor.tenantId]
+      );
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (qCheck.rows[0].customer_id !== req.actor.customerId) {
+        const err = new Error('Unauthorized to modify this quotation.');
+        err.status = 403;
+        throw err;
+      }
+      if (qCheck.rows[0].status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
+
+      const added = await addQuotationItem(client, req.actor.tenantId, id, req.body);
+      await client.query(
+        `UPDATE quotations SET status = 'under_negotiation'::quote_status, last_activity_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [id]
+      );
+      return added;
+    });
+
+    return res.status(201).json({
+      message: 'Item added to quotation under negotiation.',
+      item: result.item,
+      quotationSummary: result.quotationSummary
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Customer Portal: Edit line item discount % or quantity
+ */
+export async function editPortalItem(req, res, next) {
+  try {
+    const { itemId } = req.params;
+    const result = await withElevatedTenantContext(req.actor, async (client) => {
+      // Verify item belongs to customer's quotation
+      const itemCheck = await client.query(
+        `SELECT qi.id, qi.quotation_id, q.customer_id, q.status 
+         FROM quotation_items qi
+         JOIN quotations q ON q.id = qi.quotation_id
+         WHERE qi.id = $1 AND qi.tenant_id = $2`,
+        [itemId, req.actor.tenantId]
+      );
+      if (itemCheck.rows.length === 0) {
+        const err = new Error('Quotation item not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (itemCheck.rows[0].customer_id !== req.actor.customerId) {
+        const err = new Error('Unauthorized to modify this quotation item.');
+        err.status = 403;
+        throw err;
+      }
+      if (itemCheck.rows[0].status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
+
+      const quoteId = itemCheck.rows[0].quotation_id;
+      const updated = await updateQuotationItem(client, itemId, req.body);
+      await client.query(
+        `UPDATE quotations SET status = 'under_negotiation'::quote_status, last_activity_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [quoteId]
+      );
+      return updated;
+    });
+
+    return res.status(200).json({
+      message: 'Proposal item updated under negotiation.',
+      item: result.item,
+      quotationSummary: result.quotationSummary
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Customer Portal: Remove item from proposed quotation
+ */
+export async function removePortalItem(req, res, next) {
+  try {
+    const { itemId } = req.params;
+    const result = await withElevatedTenantContext(req.actor, async (client) => {
+      // Verify item belongs to customer's quotation
+      const itemCheck = await client.query(
+        `SELECT qi.id, qi.quotation_id, q.customer_id, q.status 
+         FROM quotation_items qi
+         JOIN quotations q ON q.id = qi.quotation_id
+         WHERE qi.id = $1 AND qi.tenant_id = $2`,
+        [itemId, req.actor.tenantId]
+      );
+      if (itemCheck.rows.length === 0) {
+        const err = new Error('Quotation item not found.');
+        err.status = 404;
+        throw err;
+      }
+      if (itemCheck.rows[0].customer_id !== req.actor.customerId) {
+        const err = new Error('Unauthorized to remove this quotation item.');
+        err.status = 403;
+        throw err;
+      }
+      if (itemCheck.rows[0].status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
+
+      const quoteId = itemCheck.rows[0].quotation_id;
+      const deleted = await deleteQuotationItem(client, itemId);
+      await client.query(
+        `UPDATE quotations SET status = 'under_negotiation'::quote_status, last_activity_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [quoteId]
+      );
+      return deleted;
+    });
+
+    return res.status(200).json({
+      message: 'Proposal item removed under negotiation.',
+      deletedItemId: result.deletedItemId,
+      quotationSummary: result.quotationSummary
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 

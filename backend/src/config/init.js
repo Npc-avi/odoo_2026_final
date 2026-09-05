@@ -26,6 +26,12 @@ export async function verifyDatabaseInitialization() {
 
     // Verify role membership in app_role_customer_portal
     try {
+      await client.query(`
+        GRANT SELECT (id, name, subdomain) ON tenants TO app_role_customer_portal;
+        GRANT SELECT, INSERT, UPDATE, DELETE ON quotation_items TO app_role_customer_portal;
+        GRANT UPDATE (status, promised_delivery_date, last_activity_at, updated_at) ON quotations TO app_role_customer_portal;
+        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_role_customer_portal;
+      `);
       await client.query('SET ROLE app_role_customer_portal');
       await client.query('RESET ROLE');
       console.log(`[DB Init] Successfully verified role membership: 'app_role_customer_portal'.`);

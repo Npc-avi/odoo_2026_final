@@ -5,6 +5,10 @@ import {
   fetchNegotiationThreadApi,
   submitNegotiationMessageApi,
   confirmCustomerQuotationApi,
+  fetchPortalCatalogApi,
+  addPortalQuotationItemApi,
+  updatePortalQuotationItemApi,
+  deletePortalQuotationItemApi,
 } from '@/features/quotations/services/quotations.api';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
@@ -14,6 +18,16 @@ import {
   Percent,
   Clock,
   Send,
+  Plus,
+  Trash2,
+  Package,
+  MessageSquare,
+  Sparkles,
+  ChevronDown,
+  X,
+  AlertCircle,
+  RefreshCw,
+  ShoppingBag,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -22,15 +36,26 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
   const [quotation, setQuotation] = useState<any>(null);
   const [negotiations, setNegotiations] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Negotiation form inputs (Screenshot 4)
-  const [counterDiscount, setCounterDiscount] = useState<string>('');
-  const [requestedDate, setRequestedDate] = useState<string>('');
-  const [lineComments, setLineComments] = useState<{ [key: string]: string }>({});
-  const [generalComment, setGeneralComment] = useState<string>('');
+  // Item inline edit states
+  const [editingDiscounts, setEditingDiscounts] = useState<{ [itemId: string]: string }>({});
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const [hasCustomerModified, setHasCustomerModified] = useState<boolean>(false);
 
+  // Add Product modal / drawer state
+  const [isAddProductOpen, setIsAddProductOpen] = useState<boolean>(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [addQuantity, setAddQuantity] = useState<number>(1);
+  const [addDiscountPct, setAddDiscountPct] = useState<string>('0');
+  const [addingProduct, setAddingProduct] = useState<boolean>(false);
+
+  // Negotiation general message inputs
+  const [requestedDate, setRequestedDate] = useState<string>('');
+  const [generalComment, setGeneralComment] = useState<string>('');
   const [submittingNeg, setSubmittingNeg] = useState<boolean>(false);
   const [confirming, setConfirming] = useState<boolean>(false);
 
@@ -38,14 +63,27 @@ export const CustomerQuoteDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [qData, negData] = await Promise.all([
+      const [qData, negData, catData] = await Promise.all([
         fetchCustomerQuotationDetailApi(quoteId),
         fetchNegotiationThreadApi(quoteId, true).catch(() => ({ negotiations: [] })),
+        fetchPortalCatalogApi().catch(() => ({ catalog: [] })),
       ]);
+
       const q = qData.quotation || qData;
       setQuotation(q);
       setNegotiations(negData.negotiations || []);
-      if (q.promisedDeliveryDate) {
+      setCatalog(catData.catalog || []);
+
+      // Initialize local discounts map
+      if (q?.items?.length > 0) {
+        const discMap: { [key: string]: string } = {};
+        q.items.forEach((it: any) => {
+          discMap[it.itemId] = String(Number(it.appliedDiscountPct || 0));
+        });
+        setEditingDiscounts(discMap);
+      }
+
+      if (q?.promisedDeliveryDate) {
         setRequestedDate(new Date(q.promisedDeliveryDate).toISOString().slice(0, 10));
       }
     } catch (err: any) {
@@ -61,9 +99,170 @@ export const CustomerQuoteDetailPage: React.FC = () => {
     }
   }, [id]);
 
-  // Confirm quotation (green button)
+  const isConfirmed = quotation?.status === 'confirmed' || quotation?.status === 'approved';
+
+  // ----------------------------------------------------
+  // Inline Item Modification: Discount Percentage
+  // ----------------------------------------------------
+  const handleDiscountBlur = async (item: any) => {
+    if (isConfirmed) return;
+    const rawVal = editingDiscounts[item.itemId];
+    const newDiscount = parseFloat(rawVal);
+
+    if (isNaN(newDiscount) || newDiscount < 0 || newDiscount > 100) {
+      toast.warning('Discount must be between 0% and 100%');
+      setEditingDiscounts((prev) => ({
+        ...prev,
+        [item.itemId]: String(Number(item.appliedDiscountPct || 0)),
+      }));
+      return;
+    }
+
+    if (newDiscount === Number(item.appliedDiscountPct || 0)) {
+      return; // No change
+    }
+
+    try {
+      setUpdatingItemId(item.itemId);
+      setHasCustomerModified(true);
+      await updatePortalQuotationItemApi(item.itemId, {
+        quantity: item.quantity,
+        appliedDiscountPct: newDiscount,
+      });
+      toast.success(`Discount updated to ${newDiscount}%. Proposal updated to Negotiating.`);
+      if (id) await loadData(id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update item discount.');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  // ----------------------------------------------------
+  // Inline Item Modification: Quantity Change
+  // ----------------------------------------------------
+  const handleQuantityChange = async (item: any, delta: number) => {
+    if (isConfirmed) return;
+    const newQty = Math.max(1, Number(item.quantity) + delta);
+    if (newQty === Number(item.quantity)) return;
+
+    try {
+      setUpdatingItemId(item.itemId);
+      setHasCustomerModified(true);
+      await updatePortalQuotationItemApi(item.itemId, {
+        quantity: newQty,
+        appliedDiscountPct: Number(item.appliedDiscountPct || 0),
+      });
+      toast.success(`Quantity updated to ${newQty}. Proposal updated to Negotiating.`);
+      if (id) await loadData(id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update item quantity.');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  // ----------------------------------------------------
+  // Inline Item Removal
+  // ----------------------------------------------------
+  const handleRemoveItem = async (itemId: string, itemName: string) => {
+    if (isConfirmed) return;
+    if (!window.confirm(`Remove "${itemName}" from your proposal?`)) return;
+
+    try {
+      setRemovingItemId(itemId);
+      setHasCustomerModified(true);
+      await deletePortalQuotationItemApi(itemId);
+      toast.info(`"${itemName}" removed from quotation. Proposal updated to Negotiating.`);
+      if (id) await loadData(id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove item.');
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
+  // ----------------------------------------------------
+  // Add Product from Catalog to Proposal
+  // ----------------------------------------------------
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || isConfirmed) return;
+
+    if (!selectedProductId) {
+      toast.warning('Please select a product to add.');
+      return;
+    }
+
+    const prod = catalog.find((p) => p.id === selectedProductId);
+    if (!prod) {
+      toast.error('Selected product not found in catalog.');
+      return;
+    }
+
+    const disc = parseFloat(addDiscountPct) || 0;
+    if (disc < 0 || disc > 100) {
+      toast.warning('Discount percentage must be between 0% and 100%');
+      return;
+    }
+
+    try {
+      setAddingProduct(true);
+      setHasCustomerModified(true);
+      await addPortalQuotationItemApi(id, {
+        productId: prod.id,
+        lineType: (prod.itemType as any) || 'hardware',
+        quantity: Math.max(1, addQuantity),
+        appliedDiscountPct: disc,
+      });
+
+      toast.success(`Added "${prod.name}" to proposal! Status set to Negotiating.`);
+      setIsAddProductOpen(false);
+      setSelectedProductId('');
+      setAddQuantity(1);
+      setAddDiscountPct('0');
+      await loadData(id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add product to quotation.');
+    } finally {
+      setAddingProduct(false);
+    }
+  };
+
+  // ----------------------------------------------------
+  // Submit General Negotiation Request
+  // ----------------------------------------------------
+  const handleSubmitRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || isConfirmed) return;
+
+    const finalComment = generalComment.trim() || 'Customer requested counter-offer terms.';
+
+    try {
+      setSubmittingNeg(true);
+      await submitNegotiationMessageApi(
+        id,
+        {
+          requestedDeliveryDate: requestedDate || undefined,
+          comments: finalComment,
+        },
+        true
+      );
+      toast.success('Negotiation request submitted! Status updated to Negotiating across all dashboards.');
+      setGeneralComment('');
+      await loadData(id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit negotiation request.');
+    } finally {
+      setSubmittingNeg(false);
+    }
+  };
+
+  // ----------------------------------------------------
+  // Confirm Quotation (1-Click Digital Sign-off)
+  // ----------------------------------------------------
   const handleConfirmQuotation = async () => {
-    if (!id) return;
+    if (!id || isConfirmed) return;
     try {
       setConfirming(true);
       const res = await confirmCustomerQuotationApi(id);
@@ -76,60 +275,6 @@ export const CustomerQuoteDetailPage: React.FC = () => {
     }
   };
 
-  // Submit request / negotiate (dark button)
-  const handleSubmitRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-
-    const compiledComments = Object.entries(lineComments)
-      .filter(([_, comment]) => typeof comment === 'string' && comment.trim().length > 0)
-      .map(([lineName, comment]) => `${lineName}: ${(comment as string).trim()}`)
-      .join(' | ');
-
-    const finalComment = [compiledComments, generalComment.trim()].filter(Boolean).join(' - ') || 'Customer requested counter-offer terms.';
-
-    try {
-      setSubmittingNeg(true);
-      await submitNegotiationMessageApi(
-        id,
-        {
-          proposedDiscountPct: counterDiscount ? parseFloat(counterDiscount) : undefined,
-          requestedDeliveryDate: requestedDate || undefined,
-          comments: finalComment,
-        },
-        true
-      );
-      toast.success('Negotiation request submitted! Status updated to Negotiating across all dashboards.');
-      setCounterDiscount('');
-      setGeneralComment('');
-      await loadData(id);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit negotiation request.');
-    } finally {
-      setSubmittingNeg(false);
-    }
-  };
-
-  const isConfirmed = quotation?.status === 'confirmed' || quotation?.status === 'approved';
-
-  // Fallback demo items if no backend items yet
-  const items = quotation?.items?.length > 0
-    ? quotation.items
-    : [
-        {
-          itemId: '1',
-          productName: 'Extended Warranty',
-          unitListPrice: 180,
-          appliedDiscountPct: 10,
-        },
-        {
-          itemId: '2',
-          productName: 'Onsite Setup',
-          unitListPrice: 450,
-          appliedDiscountPct: 18,
-        },
-      ];
-
   const getStatusLabel = () => {
     if (isConfirmed) return 'Status: Confirmed';
     if (quotation?.status === 'under_negotiation') return 'Status: Under Negotiation';
@@ -137,163 +282,516 @@ export const CustomerQuoteDetailPage: React.FC = () => {
     return 'Status: Under Negotiation';
   };
 
+  const items = quotation?.items || [];
+
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-20">
-      {/* Top Navigation & Status */}
+    <div className="space-y-8 max-w-6xl mx-auto pb-24">
+      {/* Top Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-neutral-800">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Link
               to="/portal/quotations"
-              className="inline-flex items-center gap-1 text-xs font-mono text-neutral-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-400 hover:text-white transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4" />
               <span>MY QUOTATIONS</span>
             </Link>
             <span className="text-neutral-600">/</span>
             <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight">
-              Customer Portal Negotiation Screen
+              Proposal Negotiation
             </h1>
           </div>
           <p className="text-xs font-mono text-neutral-400">
-            Customer reviews and negotiates the quote directly, no email needed
+            Review your proposal, adjust discounts, add or remove items, and negotiate live.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-4 py-1.5 rounded-2xl bg-amber-600/90 text-white font-mono text-xs font-bold tracking-wide shadow">
+          <span
+            className={`px-4 py-1.5 rounded-full font-mono text-xs font-bold tracking-wide shadow ${
+              isConfirmed
+                ? 'bg-emerald-600/90 text-white shadow-emerald-600/30'
+                : 'bg-amber-600/90 text-white shadow-amber-600/30'
+            }`}
+          >
             {getStatusLabel()}
           </span>
+
+          <button
+            onClick={() => id && loadData(id)}
+            className="p-2.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
+            title="Refresh Proposal"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
       {loading && (
         <div className="p-16 rounded-3xl border border-neutral-800 bg-[#09090b] text-center space-y-3 font-mono">
           <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#ff3b30] animate-spin mx-auto" />
-          <p className="text-xs text-neutral-400 tracking-widest uppercase">LOADING PROPOSAL DETAILS...</p>
+          <p className="text-xs text-neutral-400 tracking-widest uppercase">FETCHING PROPOSAL DETAILS...</p>
         </div>
       )}
 
       {error && !loading && (
-        <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-mono">
-          {error}
+        <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs font-mono flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {!loading && (
-        <form onSubmit={handleSubmitRequest} className="space-y-8">
-          {/* Table: Line | Customer Comment (Screenshot 4) */}
-          <div className="rounded-3xl border border-neutral-800 bg-[#09090b] overflow-hidden shadow-xl">
+      {!loading && quotation && (
+        <div className="space-y-8">
+          {/* Overview Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+              <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
+                PROPOSAL NUMBER
+              </span>
+              <span className="font-mono font-bold text-lg text-[#ff3b30]">
+                {quotation.quotationCode || id?.slice(0, 8).toUpperCase()}
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+              <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
+                TOTAL CONTRACT VALUE
+              </span>
+              <span className="font-display font-black text-2xl text-white">
+                ${Number(quotation.totalAmount || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-[#09090b] border border-neutral-800/80 shadow-lg">
+              <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block mb-1">
+                PROMISED DELIVERY
+              </span>
+              <span className="font-mono font-bold text-sm text-neutral-300 flex items-center gap-2 mt-1">
+                <Calendar className="w-4 h-4 text-neutral-500" />
+                {quotation.promisedDeliveryDate
+                  ? new Date(quotation.promisedDeliveryDate).toLocaleDateString()
+                  : 'Standard Schedule'}
+              </span>
+            </div>
+          </div>
+
+          {/* Proposed Line Items Section */}
+          <div className="rounded-3xl border border-neutral-800 bg-[#09090b] overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-4 bg-black/40">
+              <div>
+                <h3 className="font-display font-bold text-base text-white uppercase tracking-tight">
+                  PROPOSED ITEMS & SERVICES
+                </h3>
+                <p className="text-[11px] font-mono text-neutral-500">
+                  Directly adjust discount percentages, quantities, or add/remove products to negotiate your rate.
+                </p>
+              </div>
+
+              {!isConfirmed && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg shadow-[#ff3b30]/20"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>ADD PRODUCT</span>
+                </button>
+              )}
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-neutral-800 text-neutral-400 uppercase text-[11px] tracking-wider bg-black/40">
-                    <th className="py-3.5 px-6 w-1/3">Line</th>
-                    <th className="py-3.5 px-6">Customer Comment</th>
+                  <tr className="border-b border-neutral-800 text-neutral-400 uppercase text-[10px] tracking-widest bg-neutral-950/60">
+                    <th className="py-3.5 px-6">PRODUCT / SERVICE</th>
+                    <th className="py-3.5 px-4 text-right">LIST PRICE</th>
+                    <th className="py-3.5 px-4 text-center">QTY</th>
+                    <th className="py-3.5 px-4 text-center">COUNTER DISCOUNT %</th>
+                    <th className="py-3.5 px-4 text-right">NET UNIT PRICE</th>
+                    <th className="py-3.5 px-6 text-right">LINE TOTAL</th>
+                    {!isConfirmed && <th className="py-3.5 px-4 text-center w-12">REMOVE</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800/60">
-                  {items.map((item: any) => {
-                    const itemName = item.productName || item.product_name || 'Service Line';
-                    return (
-                      <tr key={item.itemId || item.id} className="hover:bg-neutral-900/40 transition-colors">
-                        <td className="py-4 px-6 font-bold text-white align-middle">
-                          {itemName}
-                        </td>
-                        <td className="py-4 px-6 align-middle">
-                          <input
-                            type="text"
-                            disabled={isConfirmed}
-                            placeholder={`Comment on ${itemName}... (e.g. Can this be 15% off?)`}
-                            value={lineComments[itemName] || ''}
-                            onChange={(e) =>
-                              setLineComments((prev) => ({
-                                ...prev,
-                                [itemName]: e.target.value,
-                              }))
-                            }
-                            className="w-full px-4 py-2.5 rounded-xl bg-black border border-neutral-800 text-white font-mono text-xs focus:border-amber-500 focus:outline-none disabled:opacity-60 placeholder:text-neutral-600"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-neutral-800/60 text-white">
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-neutral-500 font-mono text-xs">
+                        No products currently in this proposal. Click "+ ADD PRODUCT" to select from catalog.
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((item: any) => {
+                      const isUpdating = updatingItemId === item.itemId;
+                      const isRemoving = removingItemId === item.itemId;
+                      const unitList = Number(item.unitListPrice || 0);
+                      const currentDisc = parseFloat(editingDiscounts[item.itemId] ?? String(item.appliedDiscountPct || 0)) || 0;
+                      const calculatedUnit = unitList * (1 - currentDisc / 100);
+                      const lineTotal = calculatedUnit * Number(item.quantity || 1);
+
+                      return (
+                        <tr
+                          key={item.itemId}
+                          className="hover:bg-neutral-900/40 transition-colors group"
+                        >
+                          {/* Product Info */}
+                          <td className="py-4 px-6 align-middle">
+                            <div className="font-bold text-white text-sm">
+                              {item.productName || 'Service Line'}
+                            </div>
+                            {item.productDescription && (
+                              <div className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
+                                {item.productDescription}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Unit List Price */}
+                          <td className="py-4 px-4 text-right font-mono text-neutral-400 align-middle">
+                            ${unitList.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+
+                          {/* Quantity Controls */}
+                          <td className="py-4 px-4 text-center align-middle">
+                            {isConfirmed ? (
+                              <span className="font-bold">{item.quantity}</span>
+                            ) : (
+                              <div className="inline-flex items-center border border-neutral-800 rounded-lg bg-black overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuantityChange(item, -1)}
+                                  disabled={isUpdating || Number(item.quantity) <= 1}
+                                  className="px-2 py-1 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2.5 py-1 text-white font-bold text-xs min-w-[24px] text-center">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuantityChange(item, 1)}
+                                  disabled={isUpdating}
+                                  className="px-2 py-1 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-30 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Editable Discount % */}
+                          <td className="py-4 px-4 text-center align-middle">
+                            {isConfirmed ? (
+                              <span className="text-amber-400 font-bold">{item.appliedDiscountPct}%</span>
+                            ) : (
+                              <div className="inline-flex items-center relative w-24">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="0.5"
+                                  disabled={isUpdating}
+                                  value={editingDiscounts[item.itemId] ?? ''}
+                                  onChange={(e) =>
+                                    setEditingDiscounts((prev) => ({
+                                      ...prev,
+                                      [item.itemId]: e.target.value,
+                                    }))
+                                  }
+                                  onBlur={() => handleDiscountBlur(item)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  className="w-full px-2.5 py-1.5 rounded-lg bg-black border border-neutral-700 text-white font-mono text-xs text-center focus:border-[#ff3b30] focus:outline-none disabled:opacity-50"
+                                  placeholder="0"
+                                />
+                                <span className="text-neutral-500 absolute right-2 text-xs pointer-events-none">
+                                  %
+                                </span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Calculated Unit Price */}
+                          <td className="py-4 px-4 text-right font-mono text-neutral-300 align-middle">
+                            ${calculatedUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+
+                          {/* Line Total */}
+                          <td className="py-4 px-6 text-right font-bold text-white text-sm align-middle">
+                            ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+
+                          {/* Remove Button */}
+                          {!isConfirmed && (
+                            <td className="py-4 px-4 text-center align-middle">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.itemId, item.productName || 'product')}
+                                disabled={isRemoving}
+                                className="p-2 rounded-lg text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer disabled:opacity-40"
+                                title="Remove item from proposal"
+                              >
+                                <Trash2 className={`w-4 h-4 ${isRemoving ? 'animate-pulse' : ''}`} />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
-          </div>
 
-          {/* Form Inputs: Counter Discount % & Requested Delivery Date (Screenshot 4) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
-                Counter Discount %
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="100"
-                  disabled={isConfirmed}
-                  placeholder="e.g. 15"
-                  value={counterDiscount}
-                  onChange={(e) => setCounterDiscount(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-sm focus:border-amber-500 focus:outline-none disabled:opacity-60"
-                />
-                <Percent className="w-4 h-4 text-neutral-500 absolute right-4 top-3.5 pointer-events-none" />
+            {/* Table Footer Totals */}
+            {items.length > 0 && (
+              <div className="px-6 py-4 bg-neutral-950/80 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-4">
+                <span className="text-xs font-mono text-neutral-400">
+                  Changes to line discounts or quantities are automatically saved and immediately synchronize with all sales reps and managers.
+                </span>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-widest block">
+                    FINAL TOTAL CONTRACT
+                  </span>
+                  <span className="font-display font-black text-xl text-white">
+                    ${Number(quotation.totalAmount || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
-                Requested Delivery Date
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  disabled={isConfirmed}
-                  value={requestedDate}
-                  onChange={(e) => setRequestedDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-sm focus:border-amber-500 focus:outline-none disabled:opacity-60"
-                />
-                <Calendar className="w-4 h-4 text-neutral-500 absolute right-4 top-3.5 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons: Submit Request & Confirm Quotation (Screenshot 4) */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <button
-              type="submit"
-              disabled={submittingNeg || isConfirmed}
-              className="px-6 py-3 rounded-2xl bg-[#09090b] hover:bg-neutral-800 text-white border border-neutral-700 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
-            >
-              {submittingNeg ? 'Submitting...' : 'Submit Request'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleConfirmQuotation}
-              disabled={confirming || isConfirmed}
-              className="px-7 py-3 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer disabled:opacity-40 flex items-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{confirming ? 'Confirming...' : 'Confirm Quotation'}</span>
-            </button>
-
-            {isConfirmed && (
-              <span className="text-xs font-mono text-emerald-400 font-bold ml-auto">
-                Quotation Confirmed & Settled
-              </span>
             )}
           </div>
 
-          {/* Yellow/Amber Banner at bottom (Screenshot 4) */}
-          <div className="p-4 rounded-2xl border border-neutral-800 bg-neutral-950/80 text-amber-300/90 font-mono text-xs leading-relaxed">
-            If final terms exceed thresholds, the quote automatically re-enters approval (Screen 6).
-          </div>
-        </form>
+          {/* Add Product Modal / Drawer */}
+          {isAddProductOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+              <div className="w-full max-w-lg rounded-3xl border border-neutral-700 bg-[#0c0c0e] p-6 sm:p-8 space-y-6 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#ff3b30]/20 flex items-center justify-center text-[#ff3b30]">
+                      <ShoppingBag className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-display font-bold text-lg text-white uppercase tracking-tight">
+                      ADD PRODUCT TO PROPOSAL
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddProductOpen(false)}
+                    className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddProductSubmit} className="space-y-5">
+                  {/* Select Product from Database Catalog */}
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                      Select Catalog Item
+                    </label>
+                    <select
+                      value={selectedProductId}
+                      onChange={(e) => setSelectedProductId(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                    >
+                      <option value="">-- Choose from Catalog --</option>
+                      {catalog.map((prod) => (
+                        <option key={prod.id} value={prod.id}>
+                          {prod.name} ({prod.sku}) — ${Number(prod.basePrice).toFixed(2)} [{prod.itemType || 'item'}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Quantity */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={addQuantity}
+                        onChange={(e) => setAddQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Counter Discount % */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                        Requested Discount %
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={addDiscountPct}
+                          onChange={(e) => setAddDiscountPct(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-black border border-neutral-700 text-white font-mono text-xs focus:border-[#ff3b30] focus:outline-none"
+                          placeholder="0"
+                        />
+                        <Percent className="w-3.5 h-3.5 text-neutral-500 absolute right-3 top-3.5 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddProductOpen(false)}
+                      className="px-5 py-2.5 rounded-xl border border-neutral-700 text-neutral-300 font-mono text-xs hover:bg-neutral-800 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={addingProduct}
+                      className="px-6 py-2.5 rounded-xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      {addingProduct ? 'Adding...' : 'Add to Proposal'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Negotiation Form: Delivery Date & Comments */}
+          <form onSubmit={handleSubmitRequest} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                  Target / Requested Delivery Date
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    disabled={isConfirmed}
+                    value={requestedDate}
+                    onChange={(e) => setRequestedDate(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-xs focus:border-amber-500 focus:outline-none disabled:opacity-60"
+                  />
+                  <Calendar className="w-4 h-4 text-neutral-500 absolute right-4 top-3.5 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-mono text-neutral-400 uppercase tracking-wider">
+                  Counter-Proposal Notes / Justification
+                </label>
+                <input
+                  type="text"
+                  disabled={isConfirmed}
+                  placeholder="e.g. Requesting revised terms for volume commitment..."
+                  value={generalComment}
+                  onChange={(e) => setGeneralComment(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#09090b] border border-neutral-800 text-white font-mono text-xs focus:border-amber-500 focus:outline-none disabled:opacity-60 placeholder:text-neutral-600"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons: Submit Request & Confirm Quotation */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              {!isConfirmed && (
+                <button
+                  type="submit"
+                  disabled={submittingNeg}
+                  className="px-6 py-3 rounded-2xl bg-[#ff3b30] hover:bg-[#e0342a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-2 shadow-lg shadow-[#ff3b30]/20"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{submittingNeg ? 'Submitting...' : 'Send Request'}</span>
+                </button>
+              )}
+
+              {/* Approve / Confirm is only available if original sent quotation is accepted directly without customer negotiation */}
+              {!isConfirmed && quotation?.status !== 'under_negotiation' && !hasCustomerModified && (
+                <button
+                  type="button"
+                  onClick={handleConfirmQuotation}
+                  disabled={confirming}
+                  className="px-7 py-3 rounded-2xl bg-[#10b981] hover:bg-emerald-600 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer disabled:opacity-40 flex items-center gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{confirming ? 'Confirming...' : 'Confirm Quotation'}</span>
+                </button>
+              )}
+
+              {!isConfirmed && (quotation?.status === 'under_negotiation' || hasCustomerModified) && (
+                <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1.5 ml-auto">
+                  <Clock className="w-4 h-4" />
+                  <span>In Negotiation — Submit your request to send counter-terms to sales team</span>
+                </span>
+              )}
+
+              {isConfirmed && (
+                <span className="text-xs font-mono text-emerald-400 font-bold ml-auto flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Quotation Confirmed &amp; Settled</span>
+                </span>
+              )}
+            </div>
+
+            {/* Governance Alert Footer Banner */}
+            <div className="p-4 rounded-2xl border border-neutral-800 bg-neutral-950/80 text-amber-300/90 font-mono text-xs leading-relaxed flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                Discounts up to 5.00% can be approved directly by your Sales Representative. If negotiated discounts exceed 5.00%, the quote escalates to both the Sales Representative and Sales Manager for two-tier governance approval.
+              </span>
+            </div>
+          </form>
+
+          {/* Negotiation Thread / Discussion History */}
+          {negotiations.length > 0 && (
+            <div className="rounded-3xl border border-neutral-800 bg-[#09090b] p-6 space-y-4">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-neutral-800">
+                <MessageSquare className="w-4 h-4 text-neutral-400" />
+                <h3 className="font-display font-bold text-sm text-white uppercase tracking-tight">
+                  NEGOTIATION THREAD & HISTORY
+                </h3>
+              </div>
+
+              <div className="space-y-3">
+                {negotiations.map((n: any, idx: number) => {
+                  const isCustomerAuthor = Boolean(n.author_portal_user_id || n.authorPortalUserId);
+                  return (
+                    <div
+                      key={n.id || idx}
+                      className={`p-4 rounded-2xl font-mono text-xs space-y-1.5 ${
+                        isCustomerAuthor
+                          ? 'bg-neutral-900/80 border border-neutral-800 text-white ml-6'
+                          : 'bg-[#ff3b30]/10 border border-[#ff3b30]/20 text-[#ff8f88] mr-6'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-neutral-400">
+                        <span className="font-bold">
+                          {isCustomerAuthor ? 'Client Message' : 'Sales Team Message'}
+                        </span>
+                        <span>{new Date(n.created_at || n.createdAt || Date.now()).toLocaleString()}</span>
+                      </div>
+                      <p className="leading-relaxed">{n.comments}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
