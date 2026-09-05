@@ -1,0 +1,244 @@
+/**
+ * ============================================================================
+ * DEALFLOW360 LANDING PAGE - BUTTONS, BADGES & INTERACTION STYLES
+ * ============================================================================
+ * Styles for ScrambleCTAButton, ArrowSwapButton, RedCrosshair, Nav Links,
+ * and Pill Badges from the landing page components.
+ */
+
+/* ============================================================================
+ * 1. SCRAMBLE CTA BUTTON VARIANTS
+ * ============================================================================ */
+
+.lp-btn-base {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-family: var(--lp-font-mono, monospace);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Red Variant (Primary Landing Accent) */
+.lp-btn-red {
+  background-color: #ff3b30;
+  color: #ffffff;
+  border: 1px solid #ff3b30;
+  box-shadow: 0 10px 25px -5px rgba(255, 59, 48, 0.35);
+}
+.lp-btn-red:hover {
+  background-color: #ff4d42;
+  border-color: #ff4d42;
+  box-shadow: 0 14px 30px -4px rgba(255, 59, 48, 0.5);
+  transform: translateY(-1px);
+}
+
+/* White Variant (Over dark hero/video backgrounds) */
+.lp-btn-white {
+  background-color: #ffffff;
+  color: #111111;
+  border: 1px solid #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+.lp-btn-white:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Black / Dark Variant */
+.lp-btn-black {
+  background-color: #111111;
+  color: #ffffff;
+  border: 1px solid #262626;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.lp-btn-black:hover {
+  background-color: #1f1f1f;
+  border-color: #404040;
+  transform: translateY(-1px);
+}
+
+/* Ghost / Outline Variant */
+.lp-btn-outline {
+  background-color: transparent;
+  color: currentColor;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.lp-btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Sizes */
+.lp-btn-xs {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.65rem;
+  gap: 0.375rem;
+}
+.lp-btn-sm {
+  padding: 0.5rem 1.125rem;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+}
+.lp-btn-md {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  gap: 0.625rem;
+}
+.lp-btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  gap: 0.75rem;
+}
+
+/* ============================================================================
+ * 2. ARROW SLIDE-SWAP INTERACTION (Used in CTA buttons & navigation)
+ * ============================================================================ */
+
+.lp-arrow-swap-container {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+}
+
+.lp-arrow-swap-primary {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-arrow-swap-secondary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-120%, 120%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Group hover trigger */
+.group:hover .lp-arrow-swap-primary,
+.lp-btn-base:hover .lp-arrow-swap-primary {
+  transform: translate(120%, -120%);
+}
+
+.group:hover .lp-arrow-swap-secondary,
+.lp-btn-base:hover .lp-arrow-swap-secondary {
+  transform: translate(0, 0);
+}
+
+/* ============================================================================
+ * 3. NAV LINK EXPAND UNDERLINE (ScrambleNavLink)
+ * ============================================================================ */
+
+.lp-hover-underline-expand {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.lp-hover-underline-expand::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  transform: scaleX(0);
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background-color: #ff3b30;
+  transform-origin: bottom right;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-hover-underline-expand:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+/* ============================================================================
+ * 4. RED CORNER COORDINATE CROSSHAIRS (RedCrosshair.tsx)
+ * ============================================================================ */
+
+.lp-red-crosshair {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.lp-red-crosshair-top-left {
+  top: 1rem;
+  left: 1rem;
+}
+.lp-red-crosshair-top-right {
+  top: 1rem;
+  right: 1rem;
+}
+.lp-red-crosshair-bottom-left {
+  bottom: 1rem;
+  left: 1rem;
+}
+.lp-red-crosshair-bottom-right {
+  bottom: 1rem;
+  right: 1rem;
+}
+
+.lp-crosshair-line-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: #ff3b30;
+  transform: translateY(-50%);
+}
+
+.lp-crosshair-line-v {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.5px;
+  height: 100%;
+  background-color: #ff3b30;
+  transform: translateX(-50%);
+}
+
+/* ============================================================================
+ * 5. STATUS PILLS & BADGES
+ * ============================================================================ */
+
+.lp-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-family: var(--lp-font-mono, monospace);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background-color: #1a1a1a;
+  color: #a3a3a3;
+  border: 1px solid #262626;
+}
+
+.lp-badge-tag-red {
+  color: #ff3b30;
+  background-color: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.2);
+}
+
+.lp-badge-tag-cyan {
+  color: #06b6d4;
+  background-color: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.2);
+}

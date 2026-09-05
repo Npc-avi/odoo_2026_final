@@ -860,7 +860,9 @@ $$;
 -- [FIX] "confirm quotation" is the authoritative moment negotiation results get
 -- re-checked against governance and, if needed, routed back into approval.
 CREATE OR REPLACE PROCEDURE sp_customer_confirm_quotation(p_quotation_id UUID)
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
     v_status_before quote_status;
 BEGIN

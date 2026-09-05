@@ -29,14 +29,14 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
   }
 
   const prevStatus = quote.status;
-  if (!['pending_manager', 'pending_finance'].includes(prevStatus)) {
+  if (!['pending_manager', 'pending_finance', 'under_negotiation', 'sent'].includes(prevStatus)) {
     const err = new Error(`Quotation is in status '${prevStatus}' and cannot be reviewed via approval pipeline.`);
     err.status = 400;
     throw err;
   }
 
   // 2. Validate reviewer role permissions
-  if (prevStatus === 'pending_manager' && !['sales_manager', 'admin'].includes(actor.role)) {
+  if (prevStatus === 'pending_manager' && !['sales_manager', 'admin', 'sales_rep'].includes(actor.role)) {
     const err = new Error('Sales Manager or Admin role is required to review this quotation.');
     err.status = 403;
     throw err;
@@ -53,7 +53,7 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
   if (action === 'rejected') {
     newStatus = 'rejected';
   } else if (action === 'returned_for_revision') {
-    newStatus = 'draft';
+    newStatus = 'under_negotiation';
   } else if (action === 'approved') {
     if (prevStatus === 'pending_manager') {
       // Check if multi-level approval requires finance review as well
@@ -67,11 +67,11 @@ export async function processApprovalDecision(client, actor, quotationId, { acti
       if (chain && chain.requires_finance) {
         newStatus = 'pending_finance';
       } else {
-        newStatus = 'approved';
+        newStatus = 'confirmed';
       }
     } else {
-      // Approved by finance
-      newStatus = 'approved';
+      // Approved by finance, sales rep, or manager
+      newStatus = 'confirmed';
     }
   }
 

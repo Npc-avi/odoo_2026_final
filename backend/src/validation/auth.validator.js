@@ -70,3 +70,22 @@ export function validateMagicLinkVerify(req, res, next) {
 
   next();
 }
+
+export function validateCompanyRegister(req, res, next) {
+  const { companyName, email, password, fullName } = req.body;
+
+  if (!companyName || typeof companyName !== 'string' || companyName.trim().length < 2) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Company name must be at least 2 characters.' });
+  }
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Valid administrator work email address is required.' });
+  }
+  if (!password || typeof password !== 'string' || password.length < 6) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Password must be at least 6 characters.' });
+  }
+  if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
+    return res.status(400).json({ error: 'Validation Error', message: 'Administrator full name is required.' });
+  }
+
+  next();
+}

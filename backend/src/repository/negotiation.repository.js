@@ -21,10 +21,14 @@ export async function addCustomerPortalNegotiation(client, actor, quotationId, d
     data.comments
   ]);
 
-  // Update quotation status to 'under_negotiation' if currently 'sent'
+  // Update quotation status to 'under_negotiation' across all roles
   await client.query(
-    `UPDATE quotations SET status = 'under_negotiation', last_activity_at = NOW() WHERE id = $1 AND status = 'sent'`,
-    [quotationId]
+    `UPDATE quotations 
+     SET status = 'under_negotiation'::quote_status, 
+         promised_delivery_date = COALESCE($2, promised_delivery_date),
+         last_activity_at = NOW() 
+     WHERE id = $1`,
+    [quotationId, data.requestedDeliveryDate || null]
   );
 
   return result.rows[0];

@@ -1,0 +1,384 @@
+/**
+ * ============================================================================
+ * DEALFLOW360 LANDING PAGE - SECTIONS & LAYOUT REFERENCE STYLES
+ * ============================================================================
+ * Styles for all landing page layout blocks:
+ * 1. Floating Navbar (glassmorphic pill & dropdowns)
+ * 2. Hero Section & Problem Statement Ticker
+ * 3. Scattered Parallax Intro
+ * 4. Technical Service Grid (4-Quadrant Matrix & Manifesto Scroll)
+ * 5. Full-Bleed Video Breakout HUD
+ * 6. Two-Column Split Sticky Process Section
+ * 7. Kinetic Footer
+ * 8. Consultation Modal & Drawer
+ */
+
+/* ============================================================================
+ * 1. FLOATING NAVBAR STYLES (Navbar.tsx)
+ * ============================================================================ */
+
+.lp-navbar-container {
+  position: fixed;
+  top: 1rem;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem;
+  transition: all 0.3s ease;
+}
+
+.lp-navbar-pill {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(7, 19, 36, 0.7);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+/* Light / Scrolled Navbar Pill State */
+.lp-navbar-pill-scrolled {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Services Dropdown Menu */
+.lp-navbar-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: 18rem;
+  background-color: rgba(10, 21, 38, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  padding: 0.625rem;
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #ffffff;
+}
+
+/* ============================================================================
+ * 2. HERO SECTION & TICKER (HeroSection.tsx)
+ * ============================================================================ */
+
+.lp-hero-wrapper {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #050f1d;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.lp-hero-headline {
+  font-family: var(--lp-font-display, sans-serif);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: #ffffff;
+}
+
+/* Bottom Moving Ticker Bar */
+.lp-ticker-bar {
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(5, 15, 29, 0.85);
+  backdrop-filter: blur(12px);
+  padding: 0.75rem 0;
+  overflow: hidden;
+}
+
+.lp-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--lp-font-mono, monospace);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.lp-ticker-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: #ff3b30;
+}
+
+/* ============================================================================
+ * 3. SCATTERED PARALLAX INTRO (ScatteredParallaxIntro.tsx)
+ * ============================================================================ */
+
+.lp-parallax-section {
+  position: relative;
+  width: 100%;
+  padding: 6rem 1rem;
+  background-color: #ffffff;
+  color: #111111;
+  overflow: hidden;
+}
+
+.lp-parallax-card {
+  position: relative;
+  background-color: #09090b;
+  border: 1px solid #262626;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  color: #ffffff;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+.lp-parallax-card:hover {
+  border-color: #404040;
+  transform: translateY(-4px);
+}
+
+/* Ghost Background Watermark */
+.lp-ghost-typography {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--lp-font-impact, sans-serif);
+  font-size: clamp(6rem, 20vw, 22rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  line-height: 0.8;
+  z-index: 0;
+}
+
+/* ============================================================================
+ * 4. TECHNICAL SERVICE GRID (TechnicalServiceGrid.tsx)
+ * ============================================================================ */
+
+.lp-services-section {
+  position: relative;
+  background-color: #ffffff;
+  padding: 5rem 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* 4-Quadrant Curved Dark Card */
+.lp-module-card {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid #262626;
+  background-color: #09090b;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.lp-module-card:hover {
+  background-color: #111111;
+  border-color: #404040;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.lp-module-image-box {
+  position: relative;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #262626;
+  aspect-ratio: 21 / 9;
+  background-color: #030303;
+}
+
+.lp-module-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%) contrast(125%);
+  opacity: 0.8;
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lp-module-card:hover .lp-module-image {
+  filter: grayscale(0%) contrast(100%);
+  transform: scale(1.04);
+  opacity: 1;
+}
+
+/* Manifesto Scroll Word Highlight */
+.lp-manifesto-container {
+  max-width: 1200px;
+  margin: 0 auto 5rem auto;
+  font-family: var(--lp-font-display, sans-serif);
+  font-size: clamp(1.5rem, 3.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+/* ============================================================================
+ * 5. VIDEO BREAKOUT SECTION (VideoBreakoutSection.tsx)
+ * ============================================================================ */
+
+.lp-video-breakout {
+  position: relative;
+  width: 100%;
+  background-color: #050f1d;
+  padding: 6rem 1rem;
+  overflow: hidden;
+}
+
+.lp-hud-frame {
+  position: relative;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: #000000;
+  overflow: hidden;
+  box-shadow: 0 35px 80px -15px rgba(0, 0, 0, 0.8);
+}
+
+.lp-hud-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.25) 3px,
+    rgba(0, 0, 0, 0.25) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.4;
+}
+
+/* ============================================================================
+ * 6. TWO-COLUMN SPLIT STICKY PROCESS (TwoColumnProcessSection.tsx)
+ * ============================================================================ */
+
+.lp-process-section {
+  position: relative;
+  background-color: #ffffff;
+  padding: 6rem 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.lp-sticky-sidebar {
+  position: sticky;
+  top: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.lp-stage-card {
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid #e5e5e5;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+.lp-stage-card.lp-stage-active {
+  border-color: #ff3b30;
+  box-shadow: 0 15px 35px -5px rgba(255, 59, 48, 0.15);
+}
+
+.lp-ascii-block {
+  font-family: var(--lp-font-mono, monospace);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  color: #ff3b30;
+  background-color: #0d0d0d;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+/* ============================================================================
+ * 7. KINETIC MEGA FOOTER (KineticFooter.tsx)
+ * ============================================================================ */
+
+.lp-footer-section {
+  position: relative;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 6rem 1.5rem 3rem 1.5rem;
+  overflow: hidden;
+}
+
+.lp-footer-marquee-text {
+  font-family: var(--lp-font-impact, sans-serif);
+  font-size: clamp(4rem, 14vw, 15rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  white-space: nowrap;
+  color: #ffffff;
+}
+
+.lp-footer-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 2rem;
+  margin-top: 4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--lp-font-mono, monospace);
+  font-size: 0.6875rem;
+  color: #737373;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================================
+ * 8. CONSULTATION MODAL (ConsultationModal.tsx)
+ * ============================================================================ */
+
+.lp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lp-modal-box {
+  position: relative;
+  width: 100%;
+  max-width: 48rem;
+  background-color: #09090b;
+  border: 1px solid #262626;
+  border-radius: 1.75rem;
+  padding: 2.5rem;
+  color: #ffffff;
+  box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.8);
+}

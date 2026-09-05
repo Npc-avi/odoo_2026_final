@@ -39,12 +39,16 @@ async function setupDatabase() {
     console.log('[Setup] Executing DDL statements, triggers, RLS policies, and stored procedures...');
     await client.query(schemaSql);
 
-    // 3. Grant application role memberships to dealflow_app_user
-    console.log('[Setup] Granting app_role_staff and app_role_customer_portal to dealflow_app_user...');
+    // 3. Grant application role memberships to dealflow_app_user and postgres
+    console.log('[Setup] Granting app_role_staff and app_role_customer_portal to dealflow_app_user and postgres...');
+    const dbNameResult = await client.query('SELECT current_database() as db');
+    const currentDb = dbNameResult.rows[0].db;
     await client.query(`
       GRANT app_role_staff TO dealflow_app_user;
       GRANT app_role_customer_portal TO dealflow_app_user;
-      GRANT CONNECT ON DATABASE dealflow360 TO dealflow_app_user;
+      GRANT app_role_staff TO postgres;
+      GRANT app_role_customer_portal TO postgres;
+      GRANT CONNECT ON DATABASE "${currentDb}" TO dealflow_app_user;
       GRANT USAGE ON SCHEMA public TO dealflow_app_user;
     `);
 

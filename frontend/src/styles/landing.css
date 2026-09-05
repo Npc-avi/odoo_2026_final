@@ -1,0 +1,56 @@
+/**
+ * ============================================================================
+ * DEALFLOW360 - MASTER LANDING PAGE STYLESHEET REFERENCE
+ * ============================================================================
+ * This master style bundle collects and documents EVERY CSS component, utility,
+ * token, and animation used across the landing page.
+ * 
+ * Sub-modules included:
+ * 1. landing-tokens.css   -> Fonts, root variables, marquee keyframes, text outlines
+ * 2. landing-buttons.css  -> ScrambleCTAButton, ArrowSwap, RedCrosshairs, pill badges
+ * 3. landing-sections.css -> Navbar, Hero, Parallax Intro, Service Matrix,
+ *                            Video Breakout, Process Stages, Kinetic Footer, Modal
+ */
+
+@import './landing-tokens.css';
+@import './landing-buttons.css';
+@import './landing-sections.css';
+
+/**
+ * QUICK STYLE REFERENCE DIRECTORY FOR FUTURE LANDING PAGE CUSTOMIZATIONS:
+ * 
+ * 1. TYPOGRAPHY:
+ *    - .lp-font-display   : Archivo / Space Grotesk headline font (tight letter spacing)
+ *    - .lp-font-mono      : JetBrains Mono / Space Mono for data chips, tags, metrics
+ *    - .lp-font-impact    : Bold condensed impact display font for kinetic footers
+ * 
+ * 2. BRAND COLOR TOKENS:
+ *    - Red Accent         : #ff3b30 / #FF3B19 (Buttons, badges, active tab borders)
+ *    - Dark Background    : #050f1d (Hero, video breakout, navbar background)
+ *    - Card Background    : #09090b / #111111 (Service cards, parallax cards, modal)
+ *    - Light Background   : #ffffff / #f5f5f5 (Parallax section, Process section)
+ * 
+ * 3. BUTTONS & INTERACTIONS:
+ *    - .lp-btn-base       : Base pill button structure
+ *    - .lp-btn-red        : Primary crimson CTA button with shadow glow
+ *    - .lp-btn-white      : White high-contrast button for dark overlays
+ *    - .lp-btn-black      : Obsidian dark button with subtle border
+ *    - .lp-arrow-swap-*   : Diagonal slide-in arrow icon animation on hover
+ *    - .lp-hover-underline-expand : Left-to-right underline expansion on nav links
+ * 
+ * 4. KEYFRAME ANIMATIONS:
+ *    - .lp-animate-marquee          : Continuous 28s forward scroll for tickers
+ *    - .lp-animate-marquee-reverse  : 32s reverse scroll for footer ticker
+ *    - .lp-animate-spin-slow        : 20s 360-degree rotation
+ *    - .lp-animate-pulse-glow       : 2.5s radar pulse for status chips
+ * 
+ * 5. COMPONENT LAYOUT CLASSES:
+ *    - .lp-navbar-pill        : Floating rounded-full glassmorphic navbar
+ *    - .lp-hero-headline      : Display-black mega-title (uppercase, -0.04em tracking)
+ *    - .lp-ticker-bar         : Bottom moving problem statement ticker
+ *    - .lp-module-card        : 4-Quadrant curved dark card with hover elevation
+ *    - .lp-module-image-box   : 21/9 aspect ratio container with grayscale-to-color transition
+ *    - .lp-hud-frame          : Curved black container with scanline background
+ *    - .lp-stage-card         : Process stage item with active red accent border
+ *    - .lp-footer-marquee-text: Full-bleed kinetic text marquee (clamp 4rem to 15rem)
+ */

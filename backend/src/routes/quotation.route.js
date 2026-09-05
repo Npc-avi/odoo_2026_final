@@ -8,7 +8,10 @@ import {
   removeItem,
   getUpsells,
   listCustomerQuotations,
-  getCustomerQuotation
+  getCustomerQuotation,
+  listCustomers,
+  sendQuotation,
+  submitQuotationApproval
 } from '../controller/quotation.controller.js';
 import {
   validateCreateQuotation,
@@ -30,6 +33,7 @@ router.get('/portal/:id', verifyPortalToken, getCustomerQuotation);
 // ==========================================
 router.use(verifyStaffToken);
 
+router.get('/customers', listCustomers);
 router.get('/', listQuotations);
 router.get('/:id', getQuotation);
 router.post('/', validateCreateQuotation, createQuotation);
@@ -37,5 +41,7 @@ router.post('/:id/items', validateAddQuotationItem, addItem);
 router.patch('/items/:itemId', validateUpdateQuotationItem, editItem);
 router.delete('/items/:itemId', removeItem);
 router.get('/:id/upsells', getUpsells);
+router.post('/:id/send', sendQuotation);
+router.post('/:id/submit-approval', submitQuotationApproval);
 
 export default router;

@@ -9,7 +9,10 @@ import {
   DELETE_QUOTATION_ITEM,
   GET_UPSELL_SUGGESTIONS,
   GET_PORTAL_QUOTATION,
-  LIST_PORTAL_QUOTATIONS
+  LIST_PORTAL_QUOTATIONS,
+  LIST_CUSTOMERS_STAFF,
+  SEND_QUOTATION_TO_CUSTOMER,
+  SUBMIT_QUOTATION_FOR_APPROVAL
 } from '../queries/quotation.query.js';
 
 export async function getQuotationsStaff(client) {
@@ -33,13 +36,20 @@ export async function getQuotationDetailStaff(client, quotationId) {
 
 export async function createQuotationDraft(client, tenantId, repId, data) {
   const quoteCode = 'QT-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+  const initialStatus = data.status || 'draft';
   const result = await client.query(CREATE_QUOTATION, [
     tenantId,
     quoteCode,
     data.customerId,
     repId,
-    data.promisedDeliveryDate || null
+    data.promisedDeliveryDate || null,
+    initialStatus
   ]);
+  return result.rows[0];
+}
+
+export async function submitQuotationForApprovalStaff(client, quotationId) {
+  const result = await client.query(SUBMIT_QUOTATION_FOR_APPROVAL, [quotationId]);
   return result.rows[0];
 }
 
@@ -131,4 +141,14 @@ export async function getPortalQuotationDetail(client, quotationId) {
 export async function getPortalQuotationsList(client) {
   const result = await client.query(LIST_PORTAL_QUOTATIONS);
   return result.rows;
+}
+
+export async function getCustomersStaff(client) {
+  const result = await client.query(LIST_CUSTOMERS_STAFF);
+  return result.rows;
+}
+
+export async function sendQuotationStaff(client, quotationId) {
+  const result = await client.query(SEND_QUOTATION_TO_CUSTOMER, [quotationId]);
+  return result.rows[0];
 }

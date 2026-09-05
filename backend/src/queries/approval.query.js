@@ -20,7 +20,7 @@ export const CHECK_APPROVAL_CHAIN_FOR_TIER = `
 
 export const UPDATE_QUOTATION_STATUS = `
   UPDATE quotations
-  SET status = $2, updated_at = NOW()
+  SET status = $2::quote_status, updated_at = NOW()
   WHERE id = $1
   RETURNING id, status, updated_at;
 `;

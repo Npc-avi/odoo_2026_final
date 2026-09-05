@@ -34,7 +34,14 @@ export const GET_QUOTATION_SUMMARY = `
 
 export const CREATE_QUOTATION = `
   INSERT INTO quotations (tenant_id, quotation_code, customer_id, assigned_rep_id, promised_delivery_date, status)
-  VALUES ($1, $2, $3, $4, $5, 'draft')
+  VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'draft')::quote_status)
+  RETURNING *;
+`;
+
+export const SUBMIT_QUOTATION_FOR_APPROVAL = `
+  UPDATE quotations
+  SET status = 'pending_manager'::quote_status, last_activity_at = NOW(), updated_at = NOW()
+  WHERE id = $1
   RETURNING *;
 `;
 
@@ -97,18 +104,40 @@ export const GET_UPSELL_SUGGESTIONS = `
 
 // Safe Customer Portal Quotations View Query
 export const GET_PORTAL_QUOTATION = `
-  SELECT quotation_id, tenant_id, quotation_code, customer_id, status,
-         subtotal_amount, total_amount, promised_delivery_date, created_at,
-         item_id, product_name, product_description,
-         quantity, unit_list_price, applied_discount_pct,
-         calculated_unit_price, line_total
-  FROM view_customer_portal_quotations
-  WHERE quotation_id = $1;
+  SELECT q.id AS quotation_id, q.tenant_id, q.quotation_code, q.customer_id, q.status,
+         q.subtotal_amount, q.total_amount, q.promised_delivery_date, q.created_at,
+         qi.id AS item_id, p.name AS product_name, p.description AS product_description,
+         qi.quantity, qi.unit_list_price, qi.applied_discount_pct,
+         qi.calculated_unit_price, qi.line_total
+  FROM quotations q
+  LEFT JOIN quotation_items qi ON q.id = qi.quotation_id
+  LEFT JOIN products p ON qi.product_id = p.id
+  WHERE q.id = $1;
 `;
 
 export const LIST_PORTAL_QUOTATIONS = `
-  SELECT DISTINCT quotation_id, tenant_id, quotation_code, customer_id, status,
-         subtotal_amount, total_amount, promised_delivery_date, created_at
-  FROM view_customer_portal_quotations
-  ORDER BY created_at DESC;
+  SELECT q.id AS quotation_id, q.tenant_id, q.quotation_code, q.customer_id, q.status,
+         q.subtotal_amount, q.total_amount, q.promised_delivery_date, q.created_at
+  FROM quotations q
+  ORDER BY q.created_at DESC;
 `;
+
+export const LIST_CUSTOMERS_STAFF = `
+  SELECT c.id, c.tenant_id, c.company_name, c.contact_name, c.email, c.tier, c.credit_limit,
+         COALESCE(sub.max_discount_pct, 10.00) AS tier_ceiling_pct
+  FROM customers c
+  LEFT JOIN (
+    SELECT tier, MAX(max_discount_pct) AS max_discount_pct
+    FROM discount_governance_rules
+    GROUP BY tier
+  ) sub ON sub.tier = c.tier
+  ORDER BY c.company_name ASC;
+`;
+
+export const SEND_QUOTATION_TO_CUSTOMER = `
+  UPDATE quotations
+  SET status = 'sent'::quote_status, last_activity_at = NOW(), updated_at = NOW()
+  WHERE id = $1 AND status IN ('draft'::quote_status, 'approved'::quote_status, 'confirmed'::quote_status)
+  RETURNING id, quotation_code, status, blended_risk_score, total_amount;
+`;
+

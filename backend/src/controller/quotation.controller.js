@@ -8,7 +8,10 @@ import {
   deleteQuotationItem,
   getUpsellRecommendations,
   getPortalQuotationDetail,
-  getPortalQuotationsList
+  getPortalQuotationsList,
+  getCustomersStaff,
+  sendQuotationStaff,
+  submitQuotationForApprovalStaff
 } from '../repository/quotation.repository.js';
 
 /**
@@ -185,3 +188,68 @@ export async function getCustomerQuotation(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Staff: List all active customers and their tier discount ceiling
+ */
+export async function listCustomers(req, res, next) {
+  try {
+    const customers = await withTenantContext(req.actor, async (client) => {
+      return getCustomersStaff(client);
+    });
+    return res.status(200).json({ customers });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Staff: Send quotation to Customer Portal
+ */
+export async function sendQuotation(req, res, next) {
+  try {
+    const { id } = req.params;
+    const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      return sendQuotationStaff(client, id);
+    });
+
+    if (!updatedQuote) {
+      const err = new Error('Quotation cannot be sent. It must be in draft or approved status without pending approval locks.');
+      err.status = 400;
+      return next(err);
+    }
+
+    return res.status(200).json({
+      message: 'Quotation sent to Customer Portal.',
+      quotation: updatedQuote
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Staff: Explicitly submit quotation for approval
+ */
+export async function submitQuotationApproval(req, res, next) {
+  try {
+    const { id } = req.params;
+    const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      return submitQuotationForApprovalStaff(client, id);
+    });
+
+    if (!updatedQuote) {
+      const err = new Error('Quotation could not be submitted for approval.');
+      err.status = 404;
+      return next(err);
+    }
+
+    return res.status(200).json({
+      message: 'Quotation submitted for approval successfully.',
+      quotation: updatedQuote
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
