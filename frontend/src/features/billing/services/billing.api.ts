@@ -22,7 +22,12 @@ export async function fetchInvoiceByIdApi(id: string) {
     const res = await billingApi.get(`/invoices/${id}`);
     return res.data;
   } catch (error: any) {
-    throw error.response?.data || { message: `Failed to fetch invoice ${id}.` };
+    try {
+      const portalRes = await billingApi.get(`/portal/invoices/${id}`);
+      return portalRes.data;
+    } catch {
+      throw error.response?.data || { message: `Failed to fetch invoice ${id}.` };
+    }
   }
 }
 

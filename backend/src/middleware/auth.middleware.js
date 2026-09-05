@@ -95,3 +95,42 @@ export function requireStaffRole(...allowedRoles) {
     next();
   };
 }
+
+/**
+ * Middleware: Verifies Internal Staff JWT OR Customer Portal JWT.
+ * Allows unified endpoints (such as invoices) to be accessed by either staff or authenticated portal customers.
+ */
+export function verifyStaffOrPortalToken(req, res, next) {
+  // 1. Try staff token
+  try {
+    const staffToken = extractToken(req, COOKIE_NAMES.STAFF);
+    if (staffToken) {
+      const payload = verifyToken(staffToken);
+      if (payload.actorType === 'staff') {
+        req.actor = payload;
+        return next();
+      }
+    }
+  } catch (err) {
+    // Continue to check portal token
+  }
+
+  // 2. Try portal token
+  try {
+    const portalToken = extractToken(req, COOKIE_NAMES.PORTAL);
+    if (portalToken) {
+      const payload = verifyToken(portalToken);
+      if (payload.actorType === 'customer_portal') {
+        req.actor = payload;
+        return next();
+      }
+    }
+  } catch (err) {
+    // Continue to error
+  }
+
+  const error = new Error('Authentication required: Missing valid session.');
+  error.status = 401;
+  next(error);
+}
+

@@ -281,26 +281,35 @@ export async function getCustomerInvoice(req, res, next) {
       let quotation = null;
       if (inv.quotation_id) {
         const qRes = await client.query(`
-          SELECT id, quotation_code, status, total_amount, issued_at
+          SELECT id, quotation_code, status, total_amount, created_at
           FROM quotations
           WHERE id = $1 AND customer_id = $2
         `, [inv.quotation_id, customerId]);
         if (qRes.rows[0]) {
-          const qItemsRes = await client.query(`
-            SELECT qi.id, qi.description, qi.quantity, qi.unit_price, qi.applied_discount_pct, qi.line_total,
-                   p.name AS product_name, p.sku
-            FROM quotation_items qi
-            LEFT JOIN products p ON p.id = qi.product_id
-            WHERE qi.quotation_id = $1
-          `, [inv.quotation_id]);
-          quotation = { ...qRes.rows[0], items: qItemsRes.rows };
+          quotation = {
+            ...qRes.rows[0],
+            items: itemsRes.rows,
+            shipments: []
+          };
         }
+      }
+
+      let relatedInvoices = [];
+      if (inv.quotation_id) {
+        const relRes = await client.query(`
+          SELECT id, invoice_number, invoice_type, status, total_amount, due_date
+          FROM invoices
+          WHERE quotation_id = $1 AND customer_id = $2
+          ORDER BY issued_at ASC
+        `, [inv.quotation_id, customerId]);
+        relatedInvoices = relRes.rows;
       }
 
       return {
         ...inv,
         items: itemsRes.rows,
-        quotation
+        quotation,
+        relatedInvoices
       };
     });
 
@@ -310,7 +319,11 @@ export async function getCustomerInvoice(req, res, next) {
       return next(err);
     }
 
-    return res.status(200).json({ invoice, quotation: invoice.quotation });
+    return res.status(200).json({
+      invoice,
+      quotation: invoice.quotation,
+      relatedInvoices: invoice.relatedInvoices
+    });
   } catch (err) {
     next(err);
   }

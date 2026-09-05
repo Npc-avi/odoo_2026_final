@@ -22,15 +22,15 @@ export const GenericModal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className={`w-full ${maxWidth} bg-white border border-neutral-200 rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-8 relative text-neutral-900`}
+        className={`w-full ${maxWidth} max-h-[calc(100vh-2.5rem)] max-h-[calc(100dvh-2.5rem)] my-auto flex flex-col bg-white border border-neutral-200 rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-8 relative text-neutral-900`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-neutral-200 mb-6">
+        <div className="shrink-0 flex items-start justify-between pb-4 border-b border-neutral-200 mb-6">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-[9px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase mb-1">
               SYSTEM MODAL // ACTION
@@ -51,7 +51,7 @@ export const GenericModal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div>{children}</div>
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1">{children}</div>
       </div>
     </div>
   );

@@ -8,15 +8,28 @@ import {
   getCustomerInvoice
 } from '../controller/billing.controller.js';
 import { validateRecordPayment } from '../validation/billing.validator.js';
-import { verifyStaffToken, verifyPortalToken, requireStaffRole } from '../middleware/auth.middleware.js';
+import {
+  verifyStaffToken,
+  verifyPortalToken,
+  verifyStaffOrPortalToken,
+  requireStaffRole
+} from '../middleware/auth.middleware.js';
 
 const router = Router();
 
 // ==========================================
-// Customer Portal Invoice Endpoints
+// Unified & Customer Portal Invoice Endpoints
 // ==========================================
 router.get('/portal/invoices', verifyPortalToken, listCustomerInvoices);
 router.get('/portal/invoices/:id', verifyPortalToken, getCustomerInvoice);
+
+// Unified endpoint for loading invoice detail (accessible by both staff and portal customers)
+router.get('/invoices/:id', verifyStaffOrPortalToken, (req, res, next) => {
+  if (req.actor.actorType === 'customer_portal') {
+    return getCustomerInvoice(req, res, next);
+  }
+  return getInvoice(req, res, next);
+});
 
 // ==========================================
 // Staff Billing Endpoints
@@ -28,7 +41,6 @@ router.post('/quotations/:id/generate', generateBilling);
 
 // Invoices
 router.get('/invoices', listAllInvoices);
-router.get('/invoices/:id', getInvoice);
 router.post(
   '/invoices/:id/pay',
   requireStaffRole('admin', 'finance', 'sales_manager'),

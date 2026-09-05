@@ -37,7 +37,6 @@ export const AppSidebar: React.FC = () => {
     { label: 'Portal Overview', path: '/portal', icon: UserCheck },
     { label: 'My Quotations', path: '/portal/quotations', icon: FileText },
     { label: 'Invoices & Billing', path: '/portal/invoices', icon: Receipt },
-    { label: 'Submit RFQ', path: '/portal/rfqs', icon: GitPullRequest },
   ];
 
   const items = isPortal ? portalNavItems : staffNavItems;

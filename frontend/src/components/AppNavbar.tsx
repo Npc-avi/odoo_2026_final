@@ -33,7 +33,6 @@ export const AppNavbar: React.FC = () => {
     { label: 'OVERVIEW', path: '/portal' },
     { label: 'MY QUOTATIONS', path: '/portal/quotations' },
     { label: 'BILLING & INVOICES', path: '/portal/invoices' },
-    { label: 'SUBMIT RFQ', path: '/portal/rfqs' },
   ];
 
   const navItems = isPortal ? portalNavItems : staffNavItems;

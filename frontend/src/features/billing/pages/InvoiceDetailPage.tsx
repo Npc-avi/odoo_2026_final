@@ -16,10 +16,15 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAuth } from '@/features/auth/hook/useAuth';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const isPortal = user?.role === 'customer_portal';
+  const canRecordPayment = !isPortal && ['admin', 'finance', 'sales_manager'].includes(user?.role || '');
 
   const [invoice, setInvoice] = useState<any>(null);
   const [quotation, setQuotation] = useState<any>(null);
@@ -34,9 +39,10 @@ export const InvoiceDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await fetchInvoiceByIdApi(id);
-      setInvoice(data.invoice);
-      setQuotation(data.quotation || null);
-      setRelatedInvoices(data.relatedInvoices || []);
+      const inv = data.invoice;
+      setInvoice(inv);
+      setQuotation(data.quotation || inv?.quotation || null);
+      setRelatedInvoices(data.relatedInvoices || inv?.relatedInvoices || []);
     } catch (err: any) {
       setError(err.message || 'Failed to retrieve invoice breakdown.');
       toast.error('Could not load invoice audit telemetry.');
@@ -112,7 +118,7 @@ export const InvoiceDetailPage: React.FC = () => {
           <span>{error || 'Invoice record not found.'}</span>
         </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(isPortal ? '/portal/invoices' : '/invoices')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-mono transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -132,7 +138,7 @@ export const InvoiceDetailPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(isPortal ? '/portal/invoices' : '/invoices')}
               className="inline-flex items-center gap-1.5 text-xs font-mono text-neutral-500 hover:text-neutral-900 font-bold uppercase transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -175,76 +181,87 @@ export const InvoiceDetailPage: React.FC = () => {
       </div>
 
       {/* Visual Progress Pipeline Stepper */}
-      <div className="app-card rounded-3xl border border-neutral-200 bg-white p-6 sm:p-10 shadow-xs relative overflow-hidden text-neutral-900">
+      <div className="app-card rounded-3xl border border-neutral-200 bg-white p-6 sm:p-8 shadow-xs relative overflow-hidden text-neutral-900">
         <div className="overflow-x-auto">
-          <div className="min-w-[650px] flex items-center justify-between relative py-2">
-            {/* Base track line */}
-            <div className="absolute left-[12%] right-[12%] top-[24px] h-[3px] bg-neutral-200 -z-0 rounded-full" />
-
-            {/* Progress line */}
-            <div
-              className="absolute left-[12%] top-[24px] h-[3px] bg-emerald-500 -z-0 rounded-full transition-all duration-700"
-              style={{ width: isPaid ? '76%' : '50%' }}
-            />
-
-            {/* Step 1: Order Confirmed */}
-            <div className="flex flex-col items-center text-center relative z-10 space-y-2">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 border-2 border-emerald-500 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
-                <CheckCircle2 className="w-6 h-6" />
+          <div className="min-w-[640px] max-w-4xl mx-auto py-2">
+            {/* Row of Circles and Connectors */}
+            <div className="flex items-center justify-between px-6 sm:px-10">
+              {/* Step 1 Circle */}
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-50 border-2 border-emerald-500 text-emerald-600 flex items-center justify-center font-bold shadow-xs shrink-0">
+                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-700 uppercase tracking-wide">
-                Order Confirmed
-              </span>
-            </div>
 
-            {/* Step 2: Shipped */}
-            <div className="flex flex-col items-center text-center relative z-10 space-y-2">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 border-2 border-emerald-500 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
-                <CheckCircle2 className="w-6 h-6" />
+              {/* Connector 1 -> 2 (Confirmed to Shipped) */}
+              <div className="flex-1 h-[3px] bg-emerald-500 rounded-full mx-2 sm:mx-3" />
+
+              {/* Step 2 Circle */}
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-emerald-50 border-2 border-emerald-500 text-emerald-600 flex items-center justify-center font-bold shadow-xs shrink-0">
+                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-700 uppercase tracking-wide">
-                Shipped
-              </span>
-            </div>
 
-            {/* Step 3: Invoiced */}
-            <div className="flex flex-col items-center text-center relative z-10 space-y-2">
+              {/* Connector 2 -> 3 (Shipped to Invoiced) */}
+              <div className="flex-1 h-[3px] bg-emerald-500 rounded-full mx-2 sm:mx-3" />
+
+              {/* Step 3 Circle */}
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold shrink-0 transition-all ${
                   isPaid
                     ? 'bg-emerald-50 border-2 border-emerald-500 text-emerald-600 shadow-xs'
-                    : 'bg-blue-600 border-2 border-blue-500 text-white shadow-sm ring-4 ring-blue-100'
+                    : 'bg-blue-600 border-2 border-blue-500 text-white shadow-md ring-4 ring-blue-100'
                 }`}
               >
-                {isPaid ? <CheckCircle2 className="w-6 h-6" /> : <FileText className="w-5 h-5" />}
+                {isPaid ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <FileText className="w-5 h-5" />}
               </div>
-              <span
-                className={`text-xs font-mono font-bold uppercase tracking-wide ${
-                  isPaid ? 'text-emerald-700' : 'text-blue-700'
-                }`}
-              >
-                Invoiced
-              </span>
-            </div>
 
-            {/* Step 4: Paid */}
-            <div className="flex flex-col items-center text-center relative z-10 space-y-2">
+              {/* Connector 3 -> 4 (Invoiced to Paid) */}
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                className={`flex-1 h-[3px] rounded-full mx-2 sm:mx-3 transition-colors duration-500 ${
+                  isPaid ? 'bg-emerald-500' : 'bg-neutral-200'
+                }`}
+              />
+
+              {/* Step 4 Circle */}
+              <div
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold shrink-0 transition-all ${
                   isPaid
                     ? 'bg-emerald-50 border-2 border-emerald-500 text-emerald-600 shadow-xs'
                     : 'bg-neutral-100 text-neutral-400 border-2 border-neutral-300'
                 }`}
               >
-                {isPaid ? <CheckCircle2 className="w-6 h-6" /> : <Clock className="w-5 h-5" />}
+                {isPaid ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <Clock className="w-5 h-5" />}
               </div>
-              <span
-                className={`text-xs font-mono font-bold uppercase tracking-wide ${
-                  isPaid ? 'text-emerald-700' : 'text-neutral-400'
-                }`}
-              >
-                Paid
-              </span>
+            </div>
+
+            {/* Row of Labels positioned under their respective circles */}
+            <div className="flex items-start justify-between px-1 sm:px-4 mt-3">
+              <div className="w-24 sm:w-28 text-center">
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold text-emerald-700 uppercase tracking-wider block">
+                  Order Confirmed
+                </span>
+              </div>
+              <div className="w-24 sm:w-28 text-center">
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold text-emerald-700 uppercase tracking-wider block">
+                  Shipped
+                </span>
+              </div>
+              <div className="w-24 sm:w-28 text-center">
+                <span
+                  className={`text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider block ${
+                    isPaid ? 'text-emerald-700' : 'text-blue-700'
+                  }`}
+                >
+                  Invoiced
+                </span>
+              </div>
+              <div className="w-24 sm:w-28 text-center">
+                <span
+                  className={`text-[10px] sm:text-[11px] font-mono font-bold uppercase tracking-wider block ${
+                    isPaid ? 'text-emerald-700' : 'text-neutral-400'
+                  }`}
+                >
+                  Paid
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -316,15 +333,22 @@ export const InvoiceDetailPage: React.FC = () => {
 
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-3 pt-2">
-        {!isPaid && (
+        {!isPaid && canRecordPayment && (
           <button
             onClick={handleRecordPayment}
             disabled={paying}
-            className="btn btn-success rounded-full shadow-sm"
+            className="btn btn-success rounded-full shadow-sm cursor-pointer"
           >
             <CreditCard className="w-4 h-4" />
             <span>{paying ? 'RECORDING SETTLEMENT...' : 'Record Payment Settlement'}</span>
           </button>
+        )}
+
+        {!isPaid && !canRecordPayment && (
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-mono font-bold text-xs uppercase tracking-wider">
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span>Payment Pending Reconcile</span>
+          </div>
         )}
 
         {isPaid && (

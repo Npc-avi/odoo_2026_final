@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   fetchGovernanceStaffApi,
   updateStaffRoleApi,
@@ -463,238 +464,248 @@ export const GovernanceStaffTab: React.FC = () => {
       )}
 
       {/* MODAL 1: ADD STAFF MEMBER */}
-      {isAddStaffOpen && (
-        <div className="app-modal-overlay">
-          <div className="app-modal-dialog">
-            <div className="app-modal-header">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 flex items-center justify-center">
-                  <Shield className="w-4 h-4" />
+      {isAddStaffOpen &&
+        createPortal(
+          <div className="app-modal-overlay" onClick={() => setIsAddStaffOpen(false)}>
+            <div className="app-modal-dialog" onClick={(e) => e.stopPropagation()}>
+              <div className="app-modal-header">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 flex items-center justify-center">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="app-modal-title">Register Staff Member</h3>
+                    <span className="text-[10px] font-mono text-neutral-500">Eligible to login immediately</span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="app-modal-title">Register Staff Member</h3>
-                  <span className="text-[10px] font-mono text-neutral-500">Eligible to login immediately</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAddStaffOpen(false)}
-                className="app-modal-close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateStaff} className="space-y-4 font-mono text-xs">
-              <div className="space-y-1.5">
-                <label className="app-label">
-                  Full Name <span className="text-[#ff3b30]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Rachel Wayne"
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  className="app-input"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="app-label">
-                  Staff Email (Gmail or Company Email) <span className="text-[#ff3b30]">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. rachel@wayne.com"
-                  value={staffEmail}
-                  onChange={(e) => setStaffEmail(e.target.value)}
-                  className="app-input"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="app-label">
-                  Staff Role <span className="text-[#ff3b30]">*</span>
-                </label>
-                <select
-                  value={staffRole}
-                  onChange={(e) => setStaffRole(e.target.value)}
-                  className="app-input cursor-pointer"
-                >
-                  <option value="sales_rep">Sales Representative (sales_rep)</option>
-                  <option value="sales_manager">Sales Manager (sales_manager)</option>
-                  <option value="finance">Finance Officer (finance)</option>
-                  <option value="admin">Administrator (admin)</option>
-                </select>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-600">
-                <span className="font-bold text-cyan-800 block mb-1">Standard Authentication:</span>
-                Password is automatically set to <code className="text-neutral-900 font-bold bg-neutral-200 px-1.5 py-0.5 rounded">Password123!</code> so the member can sign in immediately at <span className="text-cyan-700 font-bold">/login</span>.
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddStaffOpen(false)}
-                  className="btn btn-secondary rounded-full"
+                  className="app-modal-close"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingStaff}
-                  className="btn btn-primary rounded-full"
-                >
-                  {savingStaff ? 'Registering...' : 'Confirm Staff Member'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleCreateStaff} className="flex flex-col flex-1 min-h-0">
+                <div className="app-modal-body space-y-4 font-mono text-xs">
+                  <div className="space-y-1.5">
+                    <label className="app-label">
+                      Full Name <span className="text-[#ff3b30]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rachel Wayne"
+                      value={staffName}
+                      onChange={(e) => setStaffName(e.target.value)}
+                      className="app-input"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="app-label">
+                      Staff Email (Gmail or Company Email) <span className="text-[#ff3b30]">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. rachel@wayne.com"
+                      value={staffEmail}
+                      onChange={(e) => setStaffEmail(e.target.value)}
+                      className="app-input"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="app-label">
+                      Staff Role <span className="text-[#ff3b30]">*</span>
+                    </label>
+                    <select
+                      value={staffRole}
+                      onChange={(e) => setStaffRole(e.target.value)}
+                      className="app-input cursor-pointer"
+                    >
+                      <option value="sales_rep">Sales Representative (sales_rep)</option>
+                      <option value="sales_manager">Sales Manager (sales_manager)</option>
+                      <option value="finance">Finance Officer (finance)</option>
+                      <option value="admin">Administrator (admin)</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-600">
+                    <span className="font-bold text-cyan-800 block mb-1">Standard Authentication:</span>
+                    Password is automatically set to <code className="text-neutral-900 font-bold bg-neutral-200 px-1.5 py-0.5 rounded">Password123!</code> so the member can sign in immediately at <span className="text-cyan-700 font-bold">/login</span>.
+                  </div>
+                </div>
+
+                <div className="app-modal-footer">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddStaffOpen(false)}
+                    className="btn btn-secondary rounded-full cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingStaff}
+                    className="btn btn-primary rounded-full cursor-pointer"
+                  >
+                    {savingStaff ? 'Registering...' : 'Confirm Staff Member'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* MODAL 2: ADD CUSTOMER ACCOUNT */}
-      {isAddCustomerOpen && (
-        <div className="app-modal-overlay">
-          <div className="app-modal-dialog max-w-lg">
-            <div className="app-modal-header">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-                  <Building2 className="w-4 h-4" />
+      {isAddCustomerOpen &&
+        createPortal(
+          <div className="app-modal-overlay" onClick={() => setIsAddCustomerOpen(false)}>
+            <div className="app-modal-dialog max-w-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="app-modal-header">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="app-modal-title">Register New Customer</h3>
+                    <span className="text-[10px] font-mono text-neutral-500">Creates customer &amp; active portal user</span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="app-modal-title">Register New Customer</h3>
-                  <span className="text-[10px] font-mono text-neutral-500">Creates customer &amp; active portal user</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAddCustomerOpen(false)}
-                className="app-modal-close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCustomer} className="space-y-4 font-mono text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="app-label">
-                    Company Name <span className="text-[#ff3b30]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Wayne Enterprises"
-                    value={custCompany}
-                    onChange={(e) => setCustCompany(e.target.value)}
-                    className="app-input"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="app-label">
-                    Contact Person Name <span className="text-[#ff3b30]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Bruce Wayne"
-                    value={custContact}
-                    onChange={(e) => setCustContact(e.target.value)}
-                    className="app-input"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="app-label">
-                  Customer Email (Gmail / Corporate) <span className="text-[#ff3b30]">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. bruce@wayne.com"
-                  value={custEmail}
-                  onChange={(e) => setCustEmail(e.target.value)}
-                  className="app-input"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="app-label">
-                    Customer Tier
-                  </label>
-                  <select
-                    value={custTier}
-                    onChange={(e) => setCustTier(e.target.value)}
-                    className="app-input cursor-pointer"
-                  >
-                    <option value="Bronze">Bronze Tier</option>
-                    <option value="Silver">Silver Tier</option>
-                    <option value="Gold">Gold Tier</option>
-                    <option value="Platinum">Platinum Tier</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="app-label">
-                    Credit Limit ($)
-                  </label>
-                  <input
-                    type="number"
-                    value={custCreditLimit}
-                    onChange={(e) => setCustCreditLimit(e.target.value)}
-                    className="app-input"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="app-label">
-                  Subscription Plan (Optional)
-                </label>
-                <select
-                  value={custPlanId}
-                  onChange={(e) => setCustPlanId(e.target.value)}
-                  className="app-input cursor-pointer"
-                >
-                  <option value="">None / Standard Pay-as-you-go</option>
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.cadence || 'monthly'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-600">
-                <span className="font-bold text-emerald-800 block mb-1">Customer Portal Access:</span>
-                The client can log in directly at <span className="text-emerald-700 font-bold">/portal/login</span> or <span className="text-emerald-700 font-bold">/login</span> using their email and shared password <code className="text-neutral-900 font-bold bg-neutral-200 px-1.5 py-0.5 rounded">Password123!</code>.
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddCustomerOpen(false)}
-                  className="btn btn-secondary rounded-full"
+                  className="app-modal-close"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingCustomer}
-                  className="btn btn-primary rounded-full"
-                >
-                  {savingCustomer ? 'Registering...' : 'Register Customer & Portal'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleCreateCustomer} className="flex flex-col flex-1 min-h-0">
+                <div className="app-modal-body space-y-4 font-mono text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="app-label">
+                        Company Name <span className="text-[#ff3b30]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Wayne Enterprises"
+                        value={custCompany}
+                        onChange={(e) => setCustCompany(e.target.value)}
+                        className="app-input"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="app-label">
+                        Contact Person Name <span className="text-[#ff3b30]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Bruce Wayne"
+                        value={custContact}
+                        onChange={(e) => setCustContact(e.target.value)}
+                        className="app-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="app-label">
+                      Customer Email (Gmail / Corporate) <span className="text-[#ff3b30]">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. bruce@wayne.com"
+                      value={custEmail}
+                      onChange={(e) => setCustEmail(e.target.value)}
+                      className="app-input"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="app-label">
+                        Customer Tier
+                      </label>
+                      <select
+                        value={custTier}
+                        onChange={(e) => setCustTier(e.target.value)}
+                        className="app-input cursor-pointer"
+                      >
+                        <option value="Bronze">Bronze Tier</option>
+                        <option value="Silver">Silver Tier</option>
+                        <option value="Gold">Gold Tier</option>
+                        <option value="Platinum">Platinum Tier</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="app-label">
+                        Credit Limit ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={custCreditLimit}
+                        onChange={(e) => setCustCreditLimit(e.target.value)}
+                        className="app-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="app-label">
+                      Subscription Plan (Optional)
+                    </label>
+                    <select
+                      value={custPlanId}
+                      onChange={(e) => setCustPlanId(e.target.value)}
+                      className="app-input cursor-pointer"
+                    >
+                      <option value="">None / Standard Pay-as-you-go</option>
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.cadence || 'monthly'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-600">
+                    <span className="font-bold text-emerald-800 block mb-1">Customer Portal Access:</span>
+                    The client can log in directly at <span className="text-emerald-700 font-bold">/portal/login</span> or <span className="text-emerald-700 font-bold">/login</span> using their email and shared password <code className="text-neutral-900 font-bold bg-neutral-200 px-1.5 py-0.5 rounded">Password123!</code>.
+                  </div>
+                </div>
+
+                <div className="app-modal-footer">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddCustomerOpen(false)}
+                    className="btn btn-secondary rounded-full cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingCustomer}
+                    className="btn btn-primary rounded-full cursor-pointer"
+                  >
+                    {savingCustomer ? 'Registering...' : 'Register Customer & Portal'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
