@@ -163,3 +163,27 @@ export const SEND_QUOTATION_TO_CUSTOMER = `
   RETURNING id, quotation_code, status, blended_risk_score, total_amount;
 `;
 
+export const GET_QUOTATION_CONFIRMATION_EMAIL_DATA = `
+  SELECT q.id, q.tenant_id, q.quotation_code, q.customer_id, q.status,
+         q.subtotal_amount, q.total_amount, q.promised_delivery_date, q.created_at, q.updated_at,
+         c.company_name AS customer_company_name, c.contact_name AS customer_contact_name,
+         c.email AS customer_email, c.tier AS customer_tier,
+         u.full_name AS assigned_rep_name, u.email AS assigned_rep_email
+  FROM quotations q
+  JOIN customers c ON c.id = q.customer_id
+  LEFT JOIN users u ON u.id = q.assigned_rep_id
+  WHERE q.id = $1;
+`;
+
+export const GET_QUOTATION_CONFIRMATION_ITEMS = `
+  SELECT qi.id, qi.line_type, qi.quantity, qi.unit_list_price,
+         qi.applied_discount_pct, qi.calculated_unit_price, qi.line_total, qi.line_notes,
+         p.name AS product_name, p.sku AS product_sku,
+         pv.attribute_name, pv.attribute_value
+  FROM quotation_items qi
+  JOIN products p ON p.id = qi.product_id
+  LEFT JOIN product_variants pv ON pv.id = qi.variant_id
+  WHERE qi.quotation_id = $1
+  ORDER BY qi.id ASC;
+`;
+

@@ -53,3 +53,54 @@ export async function fetchStaffRepsApi() {
     return [];
   }
 }
+
+export interface SendReportNowPayload {
+  recipientEmail?: string;
+  period?: string;
+  repId?: string;
+  status?: string;
+  productId?: string;
+}
+
+export async function sendReportNowApi(payload: SendReportNowPayload) {
+  try {
+    const res = await reportingApi.post('/send-now', payload);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to send report email.' };
+  }
+}
+
+export interface CronSchedulePayload {
+  is_active?: boolean;
+  frequency?: 'hourly' | 'every_6h' | 'daily' | 'weekly' | 'custom';
+  cron_expression?: string;
+  recipient_email?: string;
+}
+
+export async function fetchReportCronScheduleApi() {
+  try {
+    const res = await reportingApi.get('/cron-schedule');
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to load cron schedule.' };
+  }
+}
+
+export async function saveReportCronScheduleApi(payload: CronSchedulePayload) {
+  try {
+    const res = await reportingApi.post('/cron-schedule', payload);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to save cron schedule.' };
+  }
+}
+
+export async function deleteReportCronScheduleApi() {
+  try {
+    const res = await reportingApi.delete('/cron-schedule');
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to disable cron schedule.' };
+  }
+}

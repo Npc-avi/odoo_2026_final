@@ -9,6 +9,7 @@ import {
   addStaffNegotiation,
   customerConfirmQuotation
 } from '../repository/negotiation.repository.js';
+import { sendQuotationConfirmationEmail } from '../service/email.service.js';
 
 /**
  * List all negotiation threads / counter offers on a quotation
@@ -32,6 +33,23 @@ export async function submitPortalNegotiation(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
     const entry = await withElevatedTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be negotiated.');
+        err.status = 400;
+        throw err;
+      }
       return addCustomerPortalNegotiation(client, req.actor, id, req.body);
     });
 
@@ -55,6 +73,18 @@ export async function submitStaffNegotiation(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
     const entry = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
       return addStaffNegotiation(client, req.actor, id, req.body);
     });
 
@@ -77,10 +107,31 @@ export async function confirmQuotationPortal(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
     const result = await withElevatedTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is already in fulfillment and cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Quotation is already confirmed.');
+        err.status = 400;
+        throw err;
+      }
       return customerConfirmQuotation(client, id);
     });
 
     emitQuotationUpdated(req.actor.tenantId, id, { confirmation: result, status: result.status });
+
+    if (result.status === 'confirmed') {
+      sendQuotationConfirmationEmail({ quotationId: id });
+    }
 
     return res.status(200).json({
       message: result.message,

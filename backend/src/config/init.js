@@ -204,6 +204,70 @@ export async function verifyDatabaseInitialization() {
       console.warn(`[DB Init Warning] Could not assume 'app_role_customer_portal'. Ensure user '${current_user}' has been granted 'app_role_customer_portal':`, err.message);
     }
 
+    // Initialize governance_report_schedules table for admin cron job reporting
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS governance_report_schedules (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+          created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          recipient_email VARCHAR(255) NOT NULL,
+          frequency VARCHAR(50) NOT NULL DEFAULT 'daily',
+          cron_expression VARCHAR(100) NOT NULL DEFAULT '0 9 * * *',
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          last_sent_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          CONSTRAINT uk_tenant_governance_schedule UNIQUE (tenant_id)
+        );
+
+        GRANT SELECT, INSERT, UPDATE, DELETE ON governance_report_schedules TO app_role_staff;
+      `);
+      console.log(`[DB Init] Verified table 'governance_report_schedules'.`);
+    } catch (err) {
+      console.warn(`[DB Init Warning] Error checking governance_report_schedules table:`, err.message);
+    }
+
+    // Trigger to lock quotation items from modification when parent quotation is in fulfillment
+    try {
+      await client.query(`
+        CREATE OR REPLACE FUNCTION fn_prevent_quotation_item_modification_in_fulfillment()
+        RETURNS TRIGGER AS $$
+        DECLARE
+            v_status quote_status;
+            v_quote_id UUID;
+        BEGIN
+            IF TG_OP = 'DELETE' THEN
+                v_quote_id := OLD.quotation_id;
+            ELSE
+                v_quote_id := NEW.quotation_id;
+            END IF;
+
+            SELECT status INTO v_status FROM quotations WHERE id = v_quote_id;
+
+            IF v_status IN ('in_fulfillment', 'fulfillment') THEN
+                RAISE EXCEPTION 'Quotation is in fulfillment and line items cannot be modified.' USING ERRCODE = '23514';
+            END IF;
+
+            IF TG_OP = 'DELETE' THEN
+                RETURN OLD;
+            ELSE
+                RETURN NEW;
+            END IF;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        DROP TRIGGER IF EXISTS trg_prevent_quotation_item_modification_in_fulfillment ON quotation_items;
+        CREATE TRIGGER trg_prevent_quotation_item_modification_in_fulfillment
+        BEFORE INSERT OR UPDATE OR DELETE ON quotation_items
+        FOR EACH ROW
+        EXECUTE FUNCTION fn_prevent_quotation_item_modification_in_fulfillment();
+      `);
+      console.log(`[DB Init] Verified trigger 'trg_prevent_quotation_item_modification_in_fulfillment'.`);
+    } catch (err) {
+      console.warn(`[DB Init Warning] Error ensuring quotation fulfillment trigger:`, err.message);
+    }
+
     return true;
   } catch (err) {
     console.error(`[DB Init Error] Failed to connect to database:`, err.message);

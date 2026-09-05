@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useAuth } from '@/features/auth/hook/useAuth';
 import {
   fetchReportingMetricsApi,
   downloadReportCsvApi,
+  sendReportNowApi,
+  fetchReportCronScheduleApi,
+  saveReportCronScheduleApi,
+  deleteReportCronScheduleApi,
   ReportFilterParams,
 } from '../services/reporting.api';
 import { fetchProductsApi } from '../services/catalog.api';
@@ -19,17 +25,42 @@ import {
   Layers,
   ArrowUpRight,
   ShieldAlert,
+  Mail,
+  Send,
+  Calendar,
+  CheckCircle2,
+  X,
+  ShieldCheck,
+  Zap,
+  CalendarClock,
+  Info,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export const GovernanceReportsTab: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [metrics, setMetrics] = useState<any | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
   const [exportingXls, setExportingXls] = useState<boolean>(false);
+
+  // Admin Instant Email & Recurring Cron Scheduling State
+  const [showSendNowModal, setShowSendNowModal] = useState<boolean>(false);
+  const [sendNowEmail, setSendNowEmail] = useState<string>('');
+  const [sendingNow, setSendingNow] = useState<boolean>(false);
+
+  const [showCronModal, setShowCronModal] = useState<boolean>(false);
+  const [cronSchedule, setCronSchedule] = useState<any>(null);
+  const [cronFrequency, setCronFrequency] = useState<'hourly' | 'every_6h' | 'daily' | 'weekly' | 'custom'>('daily');
+  const [cronCustomExpr, setCronCustomExpr] = useState<string>('0 9 * * *');
+  const [cronRecipient, setCronRecipient] = useState<string>('');
+  const [cronActive, setCronActive] = useState<boolean>(true);
+  const [savingCron, setSavingCron] = useState<boolean>(false);
 
   // Filters matching Reference Photo 5: Period, Sales Team, Approval Status, Product
   const [period, setPeriod] = useState<string>('all');
@@ -90,6 +121,97 @@ export const GovernanceReportsTab: React.FC = () => {
   useEffect(() => {
     loadReportData();
   }, [period, selectedRep, selectedStatus, selectedProduct]);
+
+  // Load Admin Cron Schedule
+  const loadCronSchedule = async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await fetchReportCronScheduleApi();
+      if (data.schedule) {
+        setCronSchedule(data.schedule);
+        setCronFrequency(data.schedule.frequency || 'daily');
+        setCronCustomExpr(data.schedule.cron_expression || '0 9 * * *');
+        setCronRecipient(data.schedule.recipient_email || user?.email || '');
+        setCronActive(Boolean(data.schedule.is_active));
+      } else {
+        setCronRecipient(user?.email || '');
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      setSendNowEmail(user?.email || '');
+      loadCronSchedule();
+    }
+  }, [isAdmin, user]);
+
+  // Handler: Send Governance Report on the spot right now
+  const handleSendReportNow = async () => {
+    if (!sendNowEmail.trim()) {
+      toast.error('Please specify a recipient email address.');
+      return;
+    }
+    try {
+      setSendingNow(true);
+      toast.info('Dispatching executive governance report...');
+      const res = await sendReportNowApi({
+        recipientEmail: sendNowEmail.trim(),
+        period,
+        repId: selectedRep,
+        status: selectedStatus,
+        productId: selectedProduct,
+      });
+      toast.success(res.message || `Report emailed to ${sendNowEmail}!`);
+      setShowSendNowModal(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to dispatch report email.');
+    } finally {
+      setSendingNow(false);
+    }
+  };
+
+  // Handler: Save or Update Recurring Cron Schedule
+  const handleSaveCronSchedule = async () => {
+    if (!cronRecipient.trim()) {
+      toast.error('Please enter a recipient email address for recurring reports.');
+      return;
+    }
+    try {
+      setSavingCron(true);
+      const res = await saveReportCronScheduleApi({
+        is_active: cronActive,
+        frequency: cronFrequency,
+        cron_expression: cronFrequency === 'custom' ? cronCustomExpr : undefined,
+        recipient_email: cronRecipient.trim(),
+      });
+      toast.success(res.message || 'Recurring report schedule updated!');
+      setCronSchedule(res.schedule);
+      setShowCronModal(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save recurring schedule.');
+    } finally {
+      setSavingCron(false);
+    }
+  };
+
+  // Handler: Deactivate Recurring Cron Schedule
+  const handleDeleteCronSchedule = async () => {
+    try {
+      setSavingCron(true);
+      const res = await deleteReportCronScheduleApi();
+      toast.info(res.message || 'Recurring schedule deactivated.');
+      setCronActive(false);
+      if (cronSchedule) {
+        setCronSchedule({ ...cronSchedule, is_active: false });
+      }
+      setShowCronModal(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to deactivate schedule.');
+    } finally {
+      setSavingCron(false);
+    }
+  };
 
   // Export PDF using jsPDF + autoTable (vector-based, crisp, 100% reliable)
   const handleExportPdf = () => {
@@ -293,17 +415,69 @@ export const GovernanceReportsTab: React.FC = () => {
     <div className="space-y-8 animate-pageEnter">
       {/* Report Canvas Wrapped for PDF capture */}
       <div ref={reportContainerRef} className="space-y-8 p-1 sm:p-2 bg-white rounded-3xl">
-        {/* Header matching Reference Screenshot 5 */}
-        <div className="pb-6 border-b border-neutral-200">
-          <div className="text-[10px] font-mono tracking-widest text-[#ff3b30] uppercase font-bold mb-1">
-            SCREEN 10 // TELEMETRY &amp; EXECUTIVE AUDITING
+        {/* Header matching Reference Screenshot 5 with Admin Report Automation */}
+        <div className="pb-6 border-b border-neutral-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="text-[10px] font-mono tracking-widest text-[#ff3b30] uppercase font-bold mb-1 flex items-center gap-2">
+              <span>SCREEN 10 // TELEMETRY &amp; EXECUTIVE AUDITING</span>
+              {isAdmin ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                  <ShieldCheck className="w-3 h-3" />
+                  ADMIN PRIVILEGES
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 text-[10px] font-medium">
+                  STAFF VIEW
+                </span>
+              )}
+            </div>
+            <h2 className="font-display font-black text-3xl sm:text-4xl text-[#111111] uppercase tracking-tight">
+              Admin / Reporting Dashboard (Optional)
+            </h2>
+            <p className="app-page-subtitle">
+              Sales trends, approval bottlenecks and platform usage
+            </p>
           </div>
-          <h2 className="font-display font-black text-3xl sm:text-4xl text-[#111111] uppercase tracking-tight">
-            Admin / Reporting Dashboard (Optional)
-          </h2>
-          <p className="app-page-subtitle">
-            Sales trends, approval bottlenecks and platform usage
-          </p>
+
+          {/* Admin Emailing & Recurring Cron Actions */}
+          {isAdmin ? (
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Send Now Button */}
+              <button
+                type="button"
+                onClick={() => setShowSendNowModal(true)}
+                className="btn btn-primary rounded-full shadow-xs hover:scale-102 active:scale-95 text-xs font-mono font-bold flex items-center gap-2 px-4 py-2.5"
+                title="Send current governance telemetry to admin email immediately"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
+                <span>Email Report Now</span>
+              </button>
+
+              {/* Recurring Cron Schedule Button */}
+              <button
+                type="button"
+                onClick={() => setShowCronModal(true)}
+                className="btn btn-secondary rounded-full shadow-xs hover:border-black active:scale-95 text-xs font-mono font-bold flex items-center gap-2 px-4 py-2.5 bg-neutral-900 text-white hover:bg-neutral-800"
+                title="Configure automated recurring cron job for governance reports"
+              >
+                <CalendarClock className="w-3.5 h-3.5 text-sky-400" />
+                <span>Recurring Schedule (Cron)</span>
+                {cronSchedule?.is_active ? (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-neutral-400 text-[10px]">Off</span>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-neutral-50 border border-neutral-200 text-neutral-500 text-xs font-mono">
+              <ShieldAlert className="w-4 h-4 text-neutral-400" />
+              <span>Automated mailing &amp; cron scheduling restricted to Admins</span>
+            </div>
+          )}
         </div>
 
         {/* 4 Interactive Filters matching Reference Screenshot 5: Period, Sales Team, Approval Status, Product */}
@@ -603,6 +777,300 @@ export const GovernanceReportsTab: React.FC = () => {
           Audit telemetry synchronized with PostgreSQL row-level state.
         </span>
       </div>
+
+      {/* ========================================================================= */}
+      {/* ADMIN MODAL 1: Email Report On-The-Spot Right Now */}
+      {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* ADMIN MODAL 1: Email Report On-The-Spot Right Now */}
+      {/* ========================================================================= */}
+      {showSendNowModal &&
+        createPortal(
+          <div className="app-modal-overlay" onClick={() => setShowSendNowModal(false)}>
+            <div
+              className="app-modal-dialog max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="app-modal-header">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="app-modal-title">Send Report Now</h3>
+                      <span className="app-badge badge-brand">ADMIN</span>
+                    </div>
+                    <p className="app-modal-subtitle">
+                      Dispatch live executive metrics right now
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSendNowModal(false)}
+                  className="app-modal-close"
+                  aria-label="Close dialog"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="app-modal-body space-y-4">
+                <div className="space-y-1.5">
+                  <label className="app-label">
+                    Target Recipient Email Address <span className="text-[#ff3b30]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={sendNowEmail}
+                      onChange={(e) => setSendNowEmail(e.target.value)}
+                      placeholder="admin@dealflow360.com"
+                      className="app-input !pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-neutral-50/70 border border-neutral-200 text-xs font-mono space-y-2">
+                  <div className="flex justify-between items-center text-neutral-600">
+                    <span>Filter Period:</span>
+                    <strong className="text-neutral-900 uppercase font-bold">
+                      {period === 'all' ? 'All Time' : period.replace('_', ' ')}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center text-neutral-600">
+                    <span>Quotes Count:</span>
+                    <strong className="text-neutral-900 font-bold">{overview.quotes_created || 0} quotes</strong>
+                  </div>
+                  <div className="flex justify-between items-center text-neutral-600">
+                    <span>Confirmed Revenue:</span>
+                    <strong className="text-emerald-700 font-bold">
+                      ${Number(overview.total_confirmed_revenue || 0).toLocaleString()}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="app-modal-footer">
+                <button
+                  type="button"
+                  onClick={() => setShowSendNowModal(false)}
+                  disabled={sendingNow}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendReportNow}
+                  disabled={sendingNow}
+                  className="btn btn-primary"
+                >
+                  {sendingNow ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send Immediately</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ========================================================================= */}
+      {/* ADMIN MODAL 2: Automated Recurring Cron Job Configuration */}
+      {/* ========================================================================= */}
+      {showCronModal &&
+        createPortal(
+          <div className="app-modal-overlay" onClick={() => setShowCronModal(false)}>
+            <div
+              className="app-modal-dialog max-w-lg w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="app-modal-header">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-rose-50 text-[#ff3b30] border border-rose-200 flex items-center justify-center shrink-0">
+                    <CalendarClock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="app-modal-title">Recurring Cron Job</h3>
+                      <span className="app-badge badge-brand">ADMIN ONLY</span>
+                    </div>
+                    <p className="app-modal-subtitle">
+                      Automated background delivery on regular schedule
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCronModal(false)}
+                  className="app-modal-close"
+                  aria-label="Close dialog"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="app-modal-body space-y-4">
+                {/* Active Toggle Switch Card */}
+                <div className="p-4 rounded-2xl border border-neutral-200 bg-neutral-50/70 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="app-label !mb-0">Automated Delivery Status</span>
+                      {cronActive ? (
+                        <span className="app-badge badge-confirmed">ACTIVE</span>
+                      ) : (
+                        <span className="app-badge badge-draft">PAUSED</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-neutral-500 font-mono">
+                      {cronActive
+                        ? 'Cron schedule is active and will fire automatically'
+                        : 'Automated delivery is currently paused'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCronActive(!cronActive)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                      cronActive ? 'bg-[#ff3b30]' : 'bg-neutral-300'
+                    }`}
+                    role="switch"
+                    aria-checked={cronActive}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                        cronActive ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Interval / Frequency Selection */}
+                <div className="space-y-1.5">
+                  <label className="app-label">
+                    Delivery Interval (Frequency) <span className="text-[#ff3b30]">*</span>
+                  </label>
+                  <select
+                    value={cronFrequency}
+                    onChange={(e) => setCronFrequency(e.target.value as any)}
+                    className="app-select cursor-pointer"
+                  >
+                    <option value="daily">Daily — Every morning at 09:00 AM (0 9 * * *)</option>
+                    <option value="weekly">Weekly — Every Monday at 09:00 AM (0 9 * * 1)</option>
+                    <option value="every_6h">Every 6 Hours — (0 */6 * * *)</option>
+                    <option value="hourly">Hourly — Top of every hour (0 * * * *)</option>
+                    <option value="custom">Custom Cron Expression</option>
+                  </select>
+                </div>
+
+                {/* Custom Cron Input */}
+                {cronFrequency === 'custom' && (
+                  <div className="space-y-1.5 animate-fadeIn">
+                    <label className="app-label">
+                      Custom Cron Expression <span className="text-[#ff3b30]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={cronCustomExpr}
+                      onChange={(e) => setCronCustomExpr(e.target.value)}
+                      placeholder="0 9 * * *"
+                      className="app-input"
+                    />
+                    <p className="text-[10px] text-neutral-500 font-mono">
+                      Standard 5-part cron syntax. Example: <code>0 18 * * 5</code> (Every Friday at 6 PM).
+                    </p>
+                  </div>
+                )}
+
+                {/* Recipient Email */}
+                <div className="space-y-1.5">
+                  <label className="app-label">
+                    Deliver Reports To Email <span className="text-[#ff3b30]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={cronRecipient}
+                      onChange={(e) => setCronRecipient(e.target.value)}
+                      placeholder="admin@dealflow360.com"
+                      className="app-input !pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Status Metadata */}
+                {cronSchedule && (
+                  <div className="p-3.5 rounded-2xl bg-neutral-50/70 border border-neutral-200 text-xs font-mono text-neutral-500 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                      Last automated delivery:
+                    </span>
+                    <strong className="text-neutral-800 font-bold">
+                      {cronSchedule.last_sent_at
+                        ? new Date(cronSchedule.last_sent_at).toLocaleString()
+                        : 'Not triggered yet'}
+                    </strong>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="app-modal-footer">
+                {cronSchedule?.is_active && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCronSchedule}
+                    disabled={savingCron}
+                    className="btn btn-outline mr-auto text-rose-600 border-rose-200 hover:bg-rose-50"
+                  >
+                    Disable Cron
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowCronModal(false)}
+                  disabled={savingCron}
+                  className="btn btn-secondary"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCronSchedule}
+                  disabled={savingCron}
+                  className="btn btn-primary"
+                >
+                  {savingCron ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Save Schedule</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

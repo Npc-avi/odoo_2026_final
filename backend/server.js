@@ -5,6 +5,7 @@ import http from 'http';
 import app from './src/app.js';
 import { verifyDatabaseInitialization } from './src/config/init.js';
 import { startStalledDealCronJob } from './src/jobs/stalled-deal.job.js';
+import { initGovernanceReportCronJobs } from './src/jobs/governance-report.job.js';
 import { initSocket } from './src/service/socket.service.js';
 
 const PORT = process.env.PORT || 5000;
@@ -17,8 +18,9 @@ async function startServer() {
   // Verify database connectivity and non-owner application role membership
   await verifyDatabaseInitialization();
 
-  // Initialize recurring scheduled jobs (hourly stalled-deal monitor)
+  // Initialize recurring scheduled jobs (hourly stalled-deal monitor & admin report cron)
   startStalledDealCronJob();
+  await initGovernanceReportCronJobs();
 
   const server = http.createServer(app);
   initSocket(server);

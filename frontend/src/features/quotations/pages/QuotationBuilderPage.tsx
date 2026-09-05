@@ -142,6 +142,7 @@ export const QuotationBuilderPage: React.FC = () => {
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   // Status flags
+  const isInFulfillment = quotation?.status === 'in_fulfillment' || quotation?.status === 'fulfillment';
   const isConfirmed = quotation?.status === 'confirmed' || quotation?.status === 'approved';
   const isPendingApproval =
     quotation?.status === 'pending_manager' ||
@@ -149,10 +150,14 @@ export const QuotationBuilderPage: React.FC = () => {
     quotation?.status === 'pending' ||
     quotation?.status === 'under_review';
   const isUnderNegotiation = quotation?.status === 'under_negotiation' || quotation?.status === 'sent';
-  const isReadOnly = isConfirmed || isPendingApproval || isUnderNegotiation;
+  const isReadOnly = isInFulfillment || isConfirmed || isPendingApproval || isUnderNegotiation;
 
   // Save Draft action
   const handleSaveDraft = async () => {
+    if (isInFulfillment) {
+      toast.info('Quotation is in fulfillment and cannot be modified.');
+      return;
+    }
     if (isConfirmed) {
       toast.info('Confirmed quotation cannot be modified.');
       return;
@@ -211,6 +216,10 @@ export const QuotationBuilderPage: React.FC = () => {
 
   // Submit for Approval action
   const handleSubmitForApproval = async () => {
+    if (isInFulfillment) {
+      toast.info('Quotation is in fulfillment and cannot be modified.');
+      return;
+    }
     if (isConfirmed) {
       toast.info('Confirmed quotation cannot be modified.');
       return;
@@ -253,6 +262,10 @@ export const QuotationBuilderPage: React.FC = () => {
   // Add line item
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isInFulfillment) {
+      toast.error('Quotation is in fulfillment and cannot be modified.');
+      return;
+    }
     if (isConfirmed) {
       toast.error('Confirmed quotation cannot be modified.');
       return;
@@ -317,7 +330,7 @@ export const QuotationBuilderPage: React.FC = () => {
 
   // Delete line item
   const handleDeleteItem = async (itemId: string) => {
-    if (isConfirmed) return;
+    if (isInFulfillment || isConfirmed) return;
     if (!quotation?.id) return;
     try {
       await deleteQuotationItemApi(itemId);
@@ -330,7 +343,7 @@ export const QuotationBuilderPage: React.FC = () => {
 
   // Add upsell recommendation directly
   const handleAddUpsell = async (upsell: any) => {
-    if (isConfirmed) return;
+    if (isInFulfillment || isConfirmed) return;
     let targetQuoteId = quotation?.id;
 
     if (!targetQuoteId) {
@@ -370,6 +383,7 @@ export const QuotationBuilderPage: React.FC = () => {
 
   // Send to Customer Portal
   const handleSendToCustomer = async () => {
+    if (isInFulfillment || isConfirmed) return;
     if (!quotation?.id) return;
     try {
       setSendingQuote(true);
@@ -447,7 +461,13 @@ export const QuotationBuilderPage: React.FC = () => {
           {quotation && (
             <div className="flex items-center gap-2.5">
               <StatusBadge status={quotation.status} />
-              {isConfirmed && (
+              {isInFulfillment && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 border border-purple-300 text-purple-700 font-mono text-xs font-bold">
+                  <Lock className="w-3.5 h-3.5" />
+                  IN FULFILLMENT (LOCKED)
+                </span>
+              )}
+              {isConfirmed && !isInFulfillment && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 font-mono text-xs font-bold">
                   <Lock className="w-3.5 h-3.5" />
                   LOCKED
@@ -459,7 +479,7 @@ export const QuotationBuilderPage: React.FC = () => {
                   PENDING APPROVAL
                 </span>
               )}
-              {!isConfirmed && !isPendingApproval && ['draft', 'approved'].includes(quotation.status) && (
+              {!isInFulfillment && !isConfirmed && !isPendingApproval && ['draft', 'approved'].includes(quotation.status) && (
                 <button
                   onClick={handleSendToCustomer}
                   disabled={sendingQuote}
@@ -594,6 +614,21 @@ export const QuotationBuilderPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Fulfillment Locked Banner */}
+          {isInFulfillment && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-purple-50 border border-purple-200 text-purple-950 font-mono text-xs flex items-center gap-3.5 shadow-xs">
+              <div className="w-8 h-8 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center shrink-0 text-purple-700">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-bold uppercase tracking-wider text-purple-900">Quotation In Fulfillment (Read-Only)</div>
+                <div className="text-purple-700/90 text-[11px] leading-relaxed">
+                  This quotation is currently being fulfilled by the warehouse and logistics pipeline. Line items, quantities, discounts, and customer terms are locked and cannot be updated.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ---------------------------------------------------- */}
           {/* 3. CONFIGURED QUOTATION LINES (Screenshot 1)         */}
@@ -855,7 +890,22 @@ export const QuotationBuilderPage: React.FC = () => {
           {/* ---------------------------------------------------- */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
             <div className="flex flex-wrap items-center gap-3">
-              {isPendingApproval ? (
+              {isInFulfillment ? (
+                <>
+                  <Link
+                    to="/quotations"
+                    className="px-6 py-3 rounded-2xl bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    &larr; Back to Pipeline
+                  </Link>
+                  <Link
+                    to="/fulfillment"
+                    className="px-6 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    View in Fulfillment &rarr;
+                  </Link>
+                </>
+              ) : isPendingApproval ? (
                 <>
                   <Link
                     to="/quotations"

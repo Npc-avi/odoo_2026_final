@@ -1,5 +1,6 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
 import { emitApprovalUpdated } from '../service/socket.service.js';
+import { sendQuotationConfirmationEmail } from '../service/email.service.js';
 import {
   getApprovalAuditTrail,
   processApprovalDecision,
@@ -37,6 +38,10 @@ export async function handleApprovalAction(req, res, next) {
     });
 
     emitApprovalUpdated(req.actor.tenantId, id, { decision, status: decision.newStatus });
+
+    if (decision.newStatus === 'confirmed') {
+      sendQuotationConfirmationEmail({ quotationId: id });
+    }
 
     return res.status(200).json({
       message: `Quotation status updated to '${decision.newStatus}'.`,

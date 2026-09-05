@@ -30,6 +30,7 @@ import {
   ShoppingBag,
   FileText,
   Download,
+  Lock,
 } from 'lucide-react';
 import { useSocket } from '@/context/socket.context';
 import { toast } from 'react-toastify';
@@ -137,13 +138,15 @@ export const CustomerQuoteDetailPage: React.FC = () => {
     };
   }, [socket, id]);
 
+  const isInFulfillment = quotation?.status === 'in_fulfillment' || quotation?.status === 'fulfillment';
   const isConfirmed = quotation?.status === 'confirmed' || quotation?.status === 'approved';
+  const isLocked = isConfirmed || isInFulfillment;
 
   // ----------------------------------------------------
   // Inline Item Modification: Discount Percentage
   // ----------------------------------------------------
   const handleDiscountBlur = async (item: any) => {
-    if (isConfirmed) return;
+    if (isLocked) return;
     const rawVal = editingDiscounts[item.itemId];
     const newDiscount = parseFloat(rawVal);
 
@@ -180,7 +183,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   // Inline Item Modification: Quantity Change
   // ----------------------------------------------------
   const handleQuantityChange = async (item: any, delta: number) => {
-    if (isConfirmed) return;
+    if (isLocked) return;
     const newQty = Math.max(1, Number(item.quantity) + delta);
     if (newQty === Number(item.quantity)) return;
 
@@ -204,7 +207,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   // Inline Item Removal
   // ----------------------------------------------------
   const handleRemoveItem = async (itemId: string, itemName: string) => {
-    if (isConfirmed) return;
+    if (isLocked) return;
     if (!window.confirm(`Remove "${itemName}" from your proposal?`)) return;
 
     try {
@@ -225,7 +228,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   // ----------------------------------------------------
   const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || isConfirmed) return;
+    if (!id || isLocked) return;
 
     if (!selectedProductId) {
       toast.warning('Please select a product to add.');
@@ -238,30 +241,28 @@ export const CustomerQuoteDetailPage: React.FC = () => {
       return;
     }
 
-    const disc = parseFloat(addDiscountPct) || 0;
-    if (disc < 0 || disc > 100) {
-      toast.warning('Discount percentage must be between 0% and 100%');
-      return;
-    }
-
     try {
       setAddingProduct(true);
       setHasCustomerModified(true);
+      const parsedQty = Math.max(1, addQuantity || 1);
+      const parsedDiscount = Math.max(0, Math.min(100, parseFloat(addDiscountPct) || 0));
+
       await addPortalQuotationItemApi(id, {
         productId: prod.id,
         lineType: (prod.itemType as any) || 'hardware',
-        quantity: Math.max(1, addQuantity),
-        appliedDiscountPct: disc,
+        quantity: parsedQty,
+        appliedDiscountPct: parsedDiscount,
+        lineNotes: 'Added by customer from portal catalog',
       });
 
-      toast.success(`Added "${prod.name}" to proposal! Status set to Negotiating.`);
+      toast.success(`"${prod.name}" added to proposal! Proposal updated to Negotiating.`);
       setIsAddProductOpen(false);
       setSelectedProductId('');
       setAddQuantity(1);
       setAddDiscountPct('0');
       await loadData(id);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add product to quotation.');
+      toast.error(err.message || 'Failed to add product.');
     } finally {
       setAddingProduct(false);
     }
@@ -272,7 +273,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   // ----------------------------------------------------
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || isConfirmed) return;
+    if (!id || isLocked) return;
 
     const finalComment = generalComment.trim() || 'Customer requested counter-offer terms.';
 
@@ -300,7 +301,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   // Confirm Quotation (1-Click Digital Sign-off)
   // ----------------------------------------------------
   const handleConfirmQuotation = async () => {
-    if (!id || isConfirmed) return;
+    if (!id || isLocked) return;
     try {
       setConfirming(true);
       const res = await confirmCustomerQuotationApi(id);
@@ -314,6 +315,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
   };
 
   const getStatusLabel = () => {
+    if (isInFulfillment) return 'Status: In Fulfillment';
     if (isConfirmed) return 'Status: Confirmed';
     if (quotation?.status === 'under_negotiation') return 'Status: Under Negotiation';
     if (['pending_manager', 'pending_finance', 'pending'].includes(quotation?.status)) return 'Status: Pending Approval';
@@ -383,7 +385,9 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
           <span
             className={`px-4 py-1.5 rounded-full font-mono text-xs font-bold tracking-wide shadow-sm border ${
-              isConfirmed
+              isInFulfillment
+                ? 'bg-purple-50 text-purple-700 border-purple-300'
+                : isConfirmed
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-amber-50 text-amber-700 border-amber-200'
             }`}
@@ -417,6 +421,21 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
       {!loading && quotation && (
         <div className="space-y-8">
+          {/* Fulfillment Locked Banner */}
+          {isInFulfillment && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-purple-50 border border-purple-200 text-purple-950 font-mono text-xs flex items-center gap-3.5 shadow-xs">
+              <div className="w-8 h-8 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center shrink-0 text-purple-700">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-bold uppercase tracking-wider text-purple-900">Proposal In Fulfillment (Locked)</div>
+                <div className="text-purple-700/90 text-[11px] leading-relaxed">
+                  This quotation has been confirmed and is currently being fulfilled by logistics and warehouse operations. All terms, line items, quantities, and discounts are locked from further editing.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Overview Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-sm">
@@ -465,7 +484,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 </p>
               </div>
 
-              {!isConfirmed && (
+              {!isLocked && (
                 <button
                   type="button"
                   onClick={() => setIsAddProductOpen(true)}
@@ -487,7 +506,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                     <th className="py-3.5 px-4 text-center">COUNTER DISCOUNT %</th>
                     <th className="py-3.5 px-4 text-right">NET UNIT PRICE</th>
                     <th className="py-3.5 px-6 text-right">LINE TOTAL</th>
-                    {!isConfirmed && <th className="py-3.5 px-4 text-center w-12">REMOVE</th>}
+                    {!isLocked && <th className="py-3.5 px-4 text-center w-12">REMOVE</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 text-neutral-900">
@@ -530,7 +549,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
                           {/* Quantity Controls */}
                           <td className="py-4 px-4 text-center align-middle">
-                            {isConfirmed ? (
+                            {isLocked ? (
                               <span className="font-bold text-neutral-900">{item.quantity}</span>
                             ) : (
                               <div className="inline-flex items-center border border-neutral-300 rounded-lg bg-neutral-50 overflow-hidden shadow-sm">
@@ -559,7 +578,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
                           {/* Editable Discount % */}
                           <td className="py-4 px-4 text-center align-middle">
-                            {isConfirmed ? (
+                            {isLocked ? (
                               <span className="text-amber-700 font-bold">{item.appliedDiscountPct}%</span>
                             ) : (
                               <div className="inline-flex items-center relative w-24">
@@ -603,7 +622,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                           </td>
 
                           {/* Remove Button */}
-                          {!isConfirmed && (
+                          {!isLocked && (
                             <td className="py-4 px-4 text-center align-middle">
                               <button
                                 type="button"
@@ -755,7 +774,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 <div className="relative">
                   <input
                     type="date"
-                    disabled={isConfirmed}
+                    disabled={isLocked}
                     value={requestedDate}
                     onChange={(e) => setRequestedDate(e.target.value)}
                     className="w-full px-4 py-3 rounded-2xl bg-white border border-neutral-300 text-neutral-900 font-mono text-xs focus:border-[#ff3b30] focus:outline-none disabled:opacity-60 shadow-sm"
@@ -770,7 +789,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isConfirmed}
+                  disabled={isLocked}
                   placeholder="e.g. Requesting revised terms for volume commitment..."
                   value={generalComment}
                   onChange={(e) => setGeneralComment(e.target.value)}
@@ -781,7 +800,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
             {/* Action Buttons: Submit Request & Confirm Quotation */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              {!isConfirmed && (
+              {!isLocked && (
                 <button
                   type="submit"
                   disabled={submittingNeg}
@@ -793,7 +812,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
               )}
 
               {/* Approve / Confirm is only available if original sent quotation is accepted directly without customer negotiation */}
-              {!isConfirmed && quotation?.status !== 'under_negotiation' && !hasCustomerModified && (
+              {!isLocked && quotation?.status !== 'under_negotiation' && !hasCustomerModified && (
                 <button
                   type="button"
                   onClick={handleConfirmQuotation}
@@ -805,14 +824,21 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                 </button>
               )}
 
-              {!isConfirmed && (quotation?.status === 'under_negotiation' || hasCustomerModified) && (
+              {!isLocked && (quotation?.status === 'under_negotiation' || hasCustomerModified) && (
                 <span className="text-xs font-mono text-amber-700 font-bold flex items-center gap-1.5 ml-auto">
                   <Clock className="w-4 h-4" />
                   <span>In Negotiation — Submit your request to send counter-terms to sales team</span>
                 </span>
               )}
 
-              {isConfirmed && (
+              {isInFulfillment && (
+                <span className="text-xs font-mono text-purple-700 font-bold ml-auto flex items-center gap-1.5">
+                  <Lock className="w-4 h-4" />
+                  <span>Quotation In Fulfillment — Locked</span>
+                </span>
+              )}
+
+              {isConfirmed && !isInFulfillment && (
                 <span className="text-xs font-mono text-emerald-700 font-bold ml-auto flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Quotation Confirmed &amp; Settled</span>

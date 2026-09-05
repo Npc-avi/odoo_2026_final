@@ -77,6 +77,23 @@ export async function updateQuotation(req, res, next) {
   try {
     const { id } = req.params;
     const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
       return updateQuotationDraft(client, id, req.body);
     });
 
@@ -101,6 +118,23 @@ export async function addItem(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
     const result = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
       return addQuotationItem(client, req.actor.tenantId, id, req.body);
     });
 
@@ -124,6 +158,29 @@ export async function editItem(req, res, next) {
   try {
     const { itemId } = req.params;
     const result = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query(
+        `SELECT q.id, q.status 
+         FROM quotation_items qi 
+         JOIN quotations q ON q.id = qi.quotation_id 
+         WHERE qi.id = $1`,
+        [itemId]
+      );
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation item not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
       return updateQuotationItem(client, itemId, req.body);
     });
 
@@ -152,6 +209,29 @@ export async function removeItem(req, res, next) {
   try {
     const { itemId } = req.params;
     const result = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query(
+        `SELECT q.id, q.status 
+         FROM quotation_items qi 
+         JOIN quotations q ON q.id = qi.quotation_id 
+         WHERE qi.id = $1`,
+        [itemId]
+      );
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation item not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be updated.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
       return deleteQuotationItem(client, itemId);
     });
 
@@ -245,6 +325,18 @@ export async function sendQuotation(req, res, next) {
   try {
     const { id } = req.params;
     const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
       return sendQuotationStaff(client, id);
     });
 
@@ -272,6 +364,23 @@ export async function submitQuotationApproval(req, res, next) {
   try {
     const { id } = req.params;
     const updatedQuote = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
+      if (status === 'confirmed') {
+        const err = new Error('Confirmed quotations cannot be submitted for approval.');
+        err.status = 400;
+        throw err;
+      }
       return submitQuotationForApprovalStaff(client, id);
     });
 
@@ -312,6 +421,11 @@ export async function addPortalItem(req, res, next) {
       if (qCheck.rows[0].customer_id !== req.actor.customerId) {
         const err = new Error('Unauthorized to modify this quotation.');
         err.status = 403;
+        throw err;
+      }
+      if (['in_fulfillment', 'fulfillment'].includes(qCheck.rows[0].status)) {
+        const err = new Error('Quotation is in fulfillment and cannot be modified.');
+        err.status = 400;
         throw err;
       }
       if (qCheck.rows[0].status === 'confirmed') {
@@ -365,6 +479,11 @@ export async function editPortalItem(req, res, next) {
         err.status = 403;
         throw err;
       }
+      if (['in_fulfillment', 'fulfillment'].includes(itemCheck.rows[0].status)) {
+        const err = new Error('Quotation is in fulfillment and cannot be modified.');
+        err.status = 400;
+        throw err;
+      }
       if (itemCheck.rows[0].status === 'confirmed') {
         const err = new Error('Confirmed quotations cannot be modified.');
         err.status = 400;
@@ -415,6 +534,11 @@ export async function removePortalItem(req, res, next) {
       if (itemCheck.rows[0].customer_id !== req.actor.customerId) {
         const err = new Error('Unauthorized to remove this quotation item.');
         err.status = 403;
+        throw err;
+      }
+      if (['in_fulfillment', 'fulfillment'].includes(itemCheck.rows[0].status)) {
+        const err = new Error('Quotation is in fulfillment and cannot be modified.');
+        err.status = 400;
         throw err;
       }
       if (itemCheck.rows[0].status === 'confirmed') {
