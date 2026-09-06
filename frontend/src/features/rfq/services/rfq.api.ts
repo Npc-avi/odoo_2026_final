@@ -33,3 +33,31 @@ export async function submitPortalRfqApi(payload: any) {
     throw error.response?.data || { message: 'Failed to submit RFQ.' };
   }
 }
+
+export async function fetchRfqDetailApi(id: string) {
+  try {
+    const res = await rfqApi.get(`/${id}`);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch RFQ details.' };
+  }
+}
+
+export async function rejectRfqApi(id: string) {
+  try {
+    const res = await rfqApi.post(`/${id}/decline`);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to decline RFQ.' };
+  }
+}
+
+export async function convertRfqApi(id: string, assignedRepId?: string) {
+  try {
+    const res = await rfqApi.post(`/${id}/convert`, { assignedRepId });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to convert RFQ.' };
+  }
+}
+

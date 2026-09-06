@@ -61,6 +61,7 @@ export async function updateQuotationApi(
   payload: {
     customerId?: string;
     promisedDeliveryDate?: string;
+    status?: string;
   }
 ) {
   try {

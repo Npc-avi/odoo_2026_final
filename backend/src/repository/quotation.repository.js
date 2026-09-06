@@ -131,16 +131,16 @@ export async function getPortalQuotationDetail(client, quotationId) {
   const first = result.rows[0];
   const items = first.item_id
     ? result.rows.map(r => ({
-        itemId: r.item_id,
-        productId: r.product_id,
-        productName: r.product_name,
-        productDescription: r.product_description,
-        quantity: r.quantity,
-        unitListPrice: r.unit_list_price,
-        appliedDiscountPct: r.applied_discount_pct,
-        calculatedUnitPrice: r.calculated_unit_price,
-        lineTotal: r.line_total
-      }))
+      itemId: r.item_id,
+      productId: r.product_id,
+      productName: r.product_name,
+      productDescription: r.product_description,
+      quantity: r.quantity,
+      unitListPrice: r.unit_list_price,
+      appliedDiscountPct: r.applied_discount_pct,
+      calculatedUnitPrice: r.calculated_unit_price,
+      lineTotal: r.line_total
+    }))
     : [];
 
   return {

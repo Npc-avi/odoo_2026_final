@@ -58,7 +58,7 @@ export async function createProduct(client, tenantId, data) {
       await client.query(`
         INSERT INTO warehouse_inventory (tenant_id, warehouse_id, product_id, qty_on_hand, qty_reserved)
         VALUES ($1, $2, $3, $4, 0)
-        ON CONFLICT (tenant_id, warehouse_id, product_id)
+        ON CONFLICT (warehouse_id, product_id)
         DO UPDATE SET qty_on_hand = EXCLUDED.qty_on_hand;
       `, [tenantId, whId, prod.id, Math.max(0, parseInt(data.quantityOnHand, 10) || 0)]);
     }
@@ -89,7 +89,7 @@ export async function updateProduct(client, productId, data) {
       await client.query(`
         INSERT INTO warehouse_inventory (tenant_id, warehouse_id, product_id, qty_on_hand, qty_reserved)
         VALUES ($1, $2, $3, $4, 0)
-        ON CONFLICT (tenant_id, warehouse_id, product_id)
+        ON CONFLICT (warehouse_id, product_id)
         DO UPDATE SET qty_on_hand = EXCLUDED.qty_on_hand;
       `, [prod.tenant_id, whId, prod.id, Math.max(0, parseInt(data.quantityOnHand, 10) || 0)]);
     }

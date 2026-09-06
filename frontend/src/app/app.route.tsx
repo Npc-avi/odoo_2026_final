@@ -30,6 +30,7 @@ import { CustomerQuotesPage } from '@/features/portal/pages/CustomerQuotesPage';
 import { CustomerQuoteDetailPage } from '@/features/portal/pages/CustomerQuoteDetailPage';
 import { CustomerRfqPage } from '@/features/portal/pages/CustomerRfqPage';
 import { CustomerInvoicesPage } from '@/features/portal/pages/CustomerInvoicesPage';
+import { CustomerCatalogPage } from '@/features/portal/pages/CustomerCatalogPage';
 
 export const router = createBrowserRouter([
   // 1. Public Marketing Landing Page
@@ -134,6 +135,10 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute allowedRoles={['customer_portal']} />,
     children: [
+      {
+        path: '/portal/catalog',
+        element: <CustomerCatalogPage />,
+      },
       {
         path: '/portal',
         element: <CustomerPortalHome />,

@@ -9,7 +9,8 @@ import {
   Truck,
   Receipt,
   Activity,
-  UserCheck
+  UserCheck,
+  ShoppingBag
 } from 'lucide-react';
 
 export const AppSidebar: React.FC = () => {
@@ -34,6 +35,7 @@ export const AppSidebar: React.FC = () => {
   ];
 
   const portalNavItems: NavItem[] = [
+    { label: 'Product Catalogue', path: '/portal/catalog', icon: ShoppingBag },
     { label: 'Portal Overview', path: '/portal', icon: UserCheck },
     { label: 'My Quotations', path: '/portal/quotations', icon: FileText },
     { label: 'Invoices & Billing', path: '/portal/invoices', icon: Receipt },

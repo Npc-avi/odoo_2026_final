@@ -30,6 +30,7 @@ export const AppNavbar: React.FC = () => {
   ];
 
   const portalNavItems: NavItem[] = [
+    { label: 'CATALOGUE', path: '/portal/catalog' },
     { label: 'OVERVIEW', path: '/portal' },
     { label: 'MY QUOTATIONS', path: '/portal/quotations' },
     { label: 'BILLING & INVOICES', path: '/portal/invoices' },

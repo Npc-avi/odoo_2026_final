@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   fetchProductsApi,
   fetchCategoriesApi,
+  fetchProductDetailApi,
   createProductApi,
   updateProductApi,
   createVariantApi,
@@ -116,7 +117,7 @@ export const GovernanceProductsTab: React.FC = () => {
     setShowConfigModal(true);
   };
 
-  const handleOpenEditModal = (p: any) => {
+  const handleOpenEditModal = async (p: any) => {
     setEditingProduct(p);
     setFormName(p.name || '');
     setFormCategory(p.category_id || (categories[0]?.id || ''));
@@ -126,8 +127,19 @@ export const GovernanceProductsTab: React.FC = () => {
     setFormTaxRate(Number(p.tax_rate || 15));
     setFormIsSubscription(p.item_type === 'subscription');
     setFormRecurring('Monthly');
-    setFormQtyOnHand(p.quantity_on_hand || 20);
+    setFormQtyOnHand(p.quantity_on_hand !== undefined ? p.quantity_on_hand : 20);
     setShowConfigModal(true);
+
+    try {
+      const detail = await fetchProductDetailApi(p.id);
+      if (detail?.variants && detail.variants.length > 0) {
+        setVariantList(detail.variants);
+      } else {
+        setVariantList([]);
+      }
+    } catch {
+      setVariantList([]);
+    }
   };
 
   const handleAddVariant = () => {
@@ -172,7 +184,7 @@ export const GovernanceProductsTab: React.FC = () => {
       setSaving(true);
       const payload = {
         name: formName.trim(),
-        categoryId: formCategory,
+        categoryId: formCategory || (categories[0]?.id || null),
         sku: editingProduct?.sku || `PROD-${Date.now().toString().slice(-6)}`,
         basePrice: Number(formPrice),
         unitCost: Number(formPrice) * 0.6,
@@ -185,7 +197,19 @@ export const GovernanceProductsTab: React.FC = () => {
 
       if (editingProduct) {
         await updateProductApi(editingProduct.id, payload);
-        toast.success(`Product "${formName}" updated successfully in database!`);
+        if (variantList.length > 0) {
+          for (const v of variantList) {
+            if (!v.id) {
+              await createVariantApi(editingProduct.id, {
+                variantSku: `${editingProduct.sku || 'SKU'}-${v.attribute_name.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+                attributeName: v.attribute_name,
+                attributeValue: v.attribute_value,
+                extraPrice: Number(v.extra_price) || 0,
+              }).catch(() => {});
+            }
+          }
+        }
+        toast.success(`Product "${formName}" updated successfully in PostgreSQL database!`);
       } else {
         const created = await createProductApi(payload);
         const newProd = created.product || created;
@@ -193,14 +217,14 @@ export const GovernanceProductsTab: React.FC = () => {
         if (newProd?.id && variantList.length > 0) {
           for (const v of variantList) {
             await createVariantApi(newProd.id, {
-              variantSku: `${newProd.sku || 'SKU'}-${v.attribute_name.slice(0, 3).toUpperCase()}`,
+              variantSku: `${newProd.sku || 'SKU'}-${v.attribute_name.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
               attributeName: v.attribute_name,
               attributeValue: v.attribute_value,
-              extraPrice: Number(v.extra_price),
+              extraPrice: Number(v.extra_price) || 0,
             }).catch(() => {});
           }
         }
-        toast.success(`New product "${formName}" created and added to database!`);
+        toast.success(`New product "${formName}" created and stored in PostgreSQL database!`);
       }
 
       setShowConfigModal(false);
@@ -450,7 +474,10 @@ export const GovernanceProductsTab: React.FC = () => {
               if (e.target === e.currentTarget) setShowConfigModal(false);
             }}
           >
-            <div className="app-modal-dialog max-w-4xl w-full bg-white text-[#111111] shadow-2xl border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto animate-modalScaleIn">
+            <div
+              className="app-modal-dialog app-modal-dialog-lg w-full bg-white text-[#111111] shadow-2xl border border-neutral-200 rounded-3xl p-6 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto animate-modalScaleIn"
+              style={{ maxWidth: '52rem' }}
+            >
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-4 border-b border-neutral-200">
                 <div>
@@ -464,7 +491,7 @@ export const GovernanceProductsTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfigModal(false)}
-                  className="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-800 transition-colors"
+                  className="p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -472,141 +499,166 @@ export const GovernanceProductsTab: React.FC = () => {
 
               <form onSubmit={handleSaveProduct} className="space-y-6 font-mono text-xs">
                 {/* General Info Box */}
-                <div className="p-5 rounded-2xl border border-neutral-200 bg-neutral-50/70 space-y-4">
+                <div className="p-6 rounded-2xl border border-neutral-200 bg-neutral-50/70 space-y-4">
                   <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#ff3b30] flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#ff3b30]" />
                     General Info
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Left Column */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Product name</label>
-                        <input
-                          type="text"
-                          required
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          placeholder="e.g. Laptop Pro 14"
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                        />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {/* Product Name */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Product Name <span className="text-[#ff3b30]">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        placeholder="e.g. Laptop Pro 14"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all placeholder:text-neutral-400"
+                      />
+                    </div>
 
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Category</label>
-                        <select
-                          value={formCategory}
-                          onChange={(e) => setFormCategory(e.target.value)}
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
+                    {/* Category */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Category
+                      </label>
+                      <select
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all cursor-pointer"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Price */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Price (₹) <span className="text-[#ff3b30]">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={formPrice}
+                        onChange={(e) => setFormPrice(Number(e.target.value))}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Tax Rate */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Tax Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formTaxRate}
+                        onChange={(e) => setFormTaxRate(Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Unit */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Unit of Measure
+                      </label>
+                      <input
+                        type="text"
+                        value={formUnit}
+                        onChange={(e) => setFormUnit(e.target.value)}
+                        placeholder="e.g. Each, Hour, License, User/Mo"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all placeholder:text-neutral-400"
+                      />
+                    </div>
+
+                    {/* Quantity on hand */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Quantity on Hand (Integer)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formQtyOnHand}
+                        onChange={(e) => setFormQtyOnHand(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Subscription Toggle */}
+                    <div>
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Subscription Model
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormIsSubscription(!formIsSubscription)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-all cursor-pointer border ${
+                            formIsSubscription
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-100'
+                          }`}
                         >
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Price (₹)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          required
-                          value={formPrice}
-                          onChange={(e) => setFormPrice(Number(e.target.value))}
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Unit</label>
-                        <input
-                          type="text"
-                          value={formUnit}
-                          onChange={(e) => setFormUnit(e.target.value)}
-                          placeholder="Each, Hour, Recurring..."
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Description</label>
-                        <input
-                          type="text"
-                          value={formDescription}
-                          onChange={(e) => setFormDescription(e.target.value)}
-                          placeholder="Technical product specification"
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                        />
+                          {formIsSubscription ? 'YES (RECURRING)' : 'NO (ONE-TIME)'}
+                        </button>
+                        <span className="text-[10px] text-neutral-500 italic font-mono">
+                          {formIsSubscription ? 'Recurring billing enabled' : 'Single one-off item'}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Tax %</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formTaxRate}
-                          onChange={(e) => setFormTaxRate(Number(e.target.value))}
-                          className="w-24 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Subscription</label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setFormIsSubscription(!formIsSubscription)}
-                            className={`px-3 py-1 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-                              formIsSubscription
-                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                                : 'bg-neutral-100 text-neutral-600 border-neutral-200 hover:bg-neutral-200'
-                            }`}
-                          >
-                            {formIsSubscription ? 'YES' : 'NO'}
-                          </button>
-                          <span className="text-[10px] text-neutral-500 italic">
-                            If subscription yes then recurring will be visible
-                          </span>
-                        </div>
-                      </div>
-
-                      {formIsSubscription && (
-                        <div className="flex items-center justify-between gap-3 animate-fadeIn">
-                          <label className="text-neutral-600 font-bold w-32 shrink-0">Recurring</label>
-                          <select
-                            value={formRecurring}
-                            onChange={(e) => setFormRecurring(e.target.value)}
-                            className="flex-1 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                          >
-                            <option value="Monthly">Monthly</option>
-                            <option value="Quarterly">Quarterly</option>
-                            <option value="Yearly">Yearly</option>
-                            <option value="Weekly">Weekly</option>
-                          </select>
+                    {/* Recurring Cadence (visible if subscription is YES) */}
+                    <div>
+                      <label className={`block text-[11px] font-mono font-bold uppercase tracking-wider mb-1.5 ${
+                        formIsSubscription ? 'text-neutral-600' : 'text-neutral-400'
+                      }`}>
+                        Recurring Cadence
+                      </label>
+                      {formIsSubscription ? (
+                        <select
+                          value={formRecurring}
+                          onChange={(e) => setFormRecurring(e.target.value)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all cursor-pointer animate-fadeIn"
+                        >
+                          <option value="Monthly">Monthly</option>
+                          <option value="Quarterly">Quarterly</option>
+                          <option value="Yearly">Yearly</option>
+                          <option value="Weekly">Weekly</option>
+                        </select>
+                      ) : (
+                        <div className="px-3.5 py-2.5 rounded-xl border border-dashed border-neutral-200 bg-neutral-100/60 text-neutral-400 text-xs font-mono select-none">
+                          N/A (One-time transaction)
                         </div>
                       )}
+                    </div>
 
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Quantity on hand</label>
-                        <div className="flex items-center gap-2 flex-1">
-                          <input
-                            type="number"
-                            min="0"
-                            value={formQtyOnHand}
-                            onChange={(e) => setFormQtyOnHand(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-28 px-3 py-1.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30]"
-                          />
-                          <span className="text-[11px] text-neutral-500">(Integer field)</span>
-                        </div>
-                      </div>
+                    {/* Description (Spans 2 columns) */}
+                    <div className="md:col-span-2">
+                      <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-neutral-600 mb-1.5">
+                        Description / Specifications
+                      </label>
+                      <input
+                        type="text"
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        placeholder="Technical product specification and delivery notes"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 text-xs font-mono focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] outline-none transition-all placeholder:text-neutral-400"
+                      />
                     </div>
                   </div>
                 </div>
@@ -623,12 +675,13 @@ export const GovernanceProductsTab: React.FC = () => {
                           <th className="p-2.5">Attribute</th>
                           <th className="p-2.5">Values</th>
                           <th className="p-2.5 text-right">Extra price</th>
+                          <th className="p-2.5 w-8"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
                         {variantList.length === 0 ? (
                           <tr>
-                            <td colSpan={3} className="p-3 text-center text-neutral-400 italic">
+                            <td colSpan={4} className="p-3 text-center text-neutral-400 italic">
                               No variants added yet.
                             </td>
                           </tr>
@@ -639,6 +692,16 @@ export const GovernanceProductsTab: React.FC = () => {
                               <td className="p-2.5 text-neutral-700">{v.attribute_value}</td>
                               <td className="p-2.5 text-right font-bold text-neutral-900">
                                 {v.extra_price > 0 ? `+₹${v.extra_price}` : '₹0'}
+                              </td>
+                              <td className="p-2.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => setVariantList(variantList.filter((_, idx) => idx !== i))}
+                                  className="text-neutral-400 hover:text-[#ff3b30] p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                                  title="Remove variant"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
                               </td>
                             </tr>
                           ))
@@ -654,26 +717,26 @@ export const GovernanceProductsTab: React.FC = () => {
                       placeholder="Attribute (e.g. Color)"
                       value={newVarAttr}
                       onChange={(e) => setNewVarAttr(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs w-28 focus:border-[#ff3b30]"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs w-36 focus:border-[#ff3b30] outline-none"
                     />
                     <input
                       type="text"
                       placeholder="Values (e.g. Red, Blue)"
                       value={newVarVal}
                       onChange={(e) => setNewVarVal(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs flex-1 min-w-[120px] focus:border-[#ff3b30]"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs flex-1 min-w-[140px] focus:border-[#ff3b30] outline-none"
                     />
                     <input
                       type="number"
                       placeholder="Extra ₹"
                       value={newVarExtra}
                       onChange={(e) => setNewVarExtra(Number(e.target.value))}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs w-20 text-right focus:border-[#ff3b30]"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs w-28 text-right focus:border-[#ff3b30] outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleAddVariant}
-                      className="px-3.5 py-1.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer shrink-0"
                     >
                       + Add Variant
                     </button>
@@ -692,12 +755,13 @@ export const GovernanceProductsTab: React.FC = () => {
                           <th className="p-2.5">Tier</th>
                           <th className="p-2.5">Currency</th>
                           <th className="p-2.5">Price Rule</th>
+                          <th className="p-2.5 w-8"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
                         {priceRuleList.length === 0 ? (
                           <tr>
-                            <td colSpan={3} className="p-3 text-center text-neutral-400 italic">
+                            <td colSpan={4} className="p-3 text-center text-neutral-400 italic">
                               No tier price rules added yet.
                             </td>
                           </tr>
@@ -707,6 +771,16 @@ export const GovernanceProductsTab: React.FC = () => {
                               <td className="p-2.5 font-bold text-neutral-900">{r.tier}</td>
                               <td className="p-2.5 text-neutral-700">{r.currency}</td>
                               <td className="p-2.5 text-neutral-700">{r.price_rule}</td>
+                              <td className="p-2.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => setPriceRuleList(priceRuleList.filter((_, idx) => idx !== i))}
+                                  className="text-neutral-400 hover:text-[#ff3b30] p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                                  title="Remove rule"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
                             </tr>
                           ))
                         )}
@@ -718,7 +792,7 @@ export const GovernanceProductsTab: React.FC = () => {
                     <select
                       value={newRuleTier}
                       onChange={(e) => setNewRuleTier(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs font-mono outline-none cursor-pointer"
                     >
                       <option value="Bronze">Bronze</option>
                       <option value="Silver">Silver</option>
@@ -728,7 +802,7 @@ export const GovernanceProductsTab: React.FC = () => {
                     <select
                       value={newRuleCurrency}
                       onChange={(e) => setNewRuleCurrency(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs font-mono outline-none cursor-pointer"
                     >
                       <option value="INR">INR</option>
                     </select>
@@ -737,12 +811,12 @@ export const GovernanceProductsTab: React.FC = () => {
                       placeholder="Price Rule (e.g. Price minus 10% base)"
                       value={newRuleText}
                       onChange={(e) => setNewRuleText(e.target.value)}
-                      className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs flex-1 min-w-[150px] focus:border-[#ff3b30]"
+                      className="px-3 py-2 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs font-mono flex-1 min-w-[160px] focus:border-[#ff3b30] outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleAddPriceRule}
-                      className="px-3.5 py-1.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer shrink-0"
                     >
                       + Add Rule
                     </button>
@@ -755,22 +829,60 @@ export const GovernanceProductsTab: React.FC = () => {
                   <p>Recurring order with this product will be invoiced at the beginning of the period.</p>
                 </div>
 
-                {/* Modal Actions */}
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(false)}
-                    className="btn btn-secondary py-2 px-5 text-xs rounded-full"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn btn-primary py-2 px-6 rounded-full text-xs font-bold shadow-sm"
-                  >
-                    {saving ? 'Saving to Database...' : editingProduct ? 'Update Product' : 'Create Product'}
-                  </button>
+                {/* Modal Actions Footer */}
+                <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-4 pb-2 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 -mx-6 sm:-mx-8 px-6 sm:px-8 -mb-6 sm:-mb-8 rounded-b-3xl">
+                  <div className="flex items-center gap-2 text-[11px] font-mono text-neutral-500">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>PostgreSQL Database Connected &bull; Real-Time Sync</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigModal(false)}
+                      className="btn btn-secondary py-2.5 px-5 text-xs font-mono rounded-full cursor-pointer hover:bg-neutral-100"
+                    >
+                      Cancel
+                    </button>
+
+                    {editingProduct ? (
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="btn btn-primary py-2.5 px-6 rounded-full text-xs font-mono font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer bg-neutral-900 hover:bg-black text-white"
+                      >
+                        {saving ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                            <span>Saving Changes to Database...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <span>Confirm &amp; Update Product</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="btn btn-primary py-2.5 px-6 rounded-full text-xs font-mono font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer bg-[#ff3b30] hover:bg-[#e0352b] text-white"
+                      >
+                        {saving ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                            <span>Adding to Database...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 text-white" />
+                            <span>Confirm &amp; Add Product</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </form>
             </div>

@@ -161,12 +161,44 @@ Created the **Deal Health and Anomaly Dashboard** ([`DealHealthPage.tsx`](file:/
 
 ---
 
-## 4. Verification & Build Results
+---
 
-1. **TypeScript Verification (`tsc --noEmit`)**:
-   - Passed with **0 errors**.
-2. **Vite Production Build (`npm run build`)**:
-   - Built successfully in **6.70s** with all assets and styles bundled.
-3. **Database & API Verification**:
-   - Verified role restrictions on `dealhealth.route.js`.
-   - Verified that `action_status` updates to `Escalated to Admin` and shows up on Admin view.
+## 5. Catalog Products: Fix for ON CONFLICT Error & Database Connectivity
+
+### Root Cause
+- When creating or editing products with inventory (`quantityOnHand`), the backend was executing:
+  ```sql
+  INSERT INTO warehouse_inventory (tenant_id, warehouse_id, product_id, qty_on_hand, qty_reserved)
+  VALUES ($1, $2, $3, $4, 0)
+  ON CONFLICT (tenant_id, warehouse_id, product_id)
+  DO UPDATE SET qty_on_hand = EXCLUDED.qty_on_hand;
+  ```
+- PostgreSQL thrown the error: `there is no unique or exclusion constraint matching the ON CONFLICT specification`.
+- In the database schema, the unique constraint `uk_warehouse_product` on `warehouse_inventory` is `(warehouse_id, product_id)` (not `(tenant_id, warehouse_id, product_id)`).
+
+### Changes Implemented
+1. **Backend Repository (`backend/src/repository/catalog.repository.js`)**:
+   - Updated both `createProduct` and `updateProduct` queries to specify:
+     ```sql
+     ON CONFLICT (warehouse_id, product_id)
+     DO UPDATE SET qty_on_hand = EXCLUDED.qty_on_hand;
+     ```
+   - Matches the PostgreSQL unique constraint `uk_warehouse_product` perfectly.
+2. **Frontend UI & Database Connectivity (`frontend/src/features/catalog/components/GovernanceProductsTab.tsx`)**:
+   - Upgraded both "+ New Product" and "Edit" modals with prominent sticky action footers:
+     - **Add Mode**: "Confirm & Add Product" (`+ Add Product to Database`) with clear database indicators.
+     - **Edit Mode**: "Confirm & Update Product" (`Save Changes to Database`).
+     - Real-time indicator displaying database connection status.
+   - Connected `handleOpenEditModal` to `fetchProductDetailApi(p.id)` to load existing variants directly from PostgreSQL.
+   - Connected `handleSaveProduct` to create new variants, update product attributes, and sync inventory with the warehouse.
+   - Added removal actions (`X` icon) on variant and pricelist rows for quick editing.
+
+### Verification Results
+- **Automated End-to-End API & Database Test (`test_catalog_api.js`)**:
+  - `POST /api/catalog/products`: Succeeded with **201 Created**.
+  - `warehouse_inventory` quantity on hand: Verified in PostgreSQL (`45` units).
+  - `PATCH /api/catalog/products/:id`: Succeeded with **200 OK**.
+  - `warehouse_inventory` updated quantity on hand: Verified in PostgreSQL (`80` units).
+  - Cleaned up test record from database.
+- **Frontend TypeScript Lint (`npm run lint`)**: Passed with **0 errors**.
+- **Frontend Production Build (`npm run build`)**: Built in **6.29s** with 0 errors.

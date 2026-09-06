@@ -18,15 +18,17 @@ export async function submitRfqPortal(req, res, next) {
       return createQuotationRequest(client, req.actor, req.body);
     });
 
-    // Send async email notification to rep if rep email is configured
-    try {
-      sendRfqNotificationEmail({
-        repEmail: 'sales-ops@dealflow360.internal',
-        repName: 'Assigned Sales Representative',
-        customerName: `Customer Account ${req.actor.customerId}`,
-        rfqId: result.request.id
-      });
-    } catch (_) {}
+    // Send async email notification to rep ONLY if explicitly enabled
+    if (process.env.ENABLE_RFQ_EMAIL_NOTIFICATIONS === 'true') {
+      try {
+        sendRfqNotificationEmail({
+          repEmail: process.env.SALES_REP_ALERT_EMAIL || 'sales-ops@dealflow360.internal',
+          repName: 'Assigned Sales Representative',
+          customerName: `Customer Account ${req.actor.customerId}`,
+          rfqId: result.request.id
+        });
+      } catch (_) {}
+    }
 
     return res.status(201).json({
       message: 'Quotation request submitted successfully.',

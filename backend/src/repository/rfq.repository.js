@@ -63,7 +63,7 @@ export async function convertRfqToQuotation(client, rfqId, repId) {
   // Call the stored procedure sp_convert_rfq_to_quotation
   // p_request_id, p_assigned_rep_id, INOUT p_new_quote_id
   const spResult = await client.query(CALL_CONVERT_RFQ_SP, [rfqId, repId, null]);
-  
+
   let newQuoteId = null;
   if (spResult.rows && spResult.rows[0] && spResult.rows[0].p_new_quote_id) {
     newQuoteId = spResult.rows[0].p_new_quote_id;

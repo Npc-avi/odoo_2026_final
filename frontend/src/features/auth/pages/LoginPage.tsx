@@ -40,13 +40,6 @@ export const LoginPage: React.FC = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Quick Demo Auto-fill Helper
-  const handleAutofill = (demoEmail: string, demoPass: string = 'Password123!') => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError(null);
-    setFeedback(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,61 +365,6 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Autofill */}
-          <div className="pt-4 border-t border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider">
-              <span>DEMO CREDENTIAL PRESETS</span>
-              <span className="text-neutral-400 font-bold">CLICK TO AUTOFILL</span>
-            </div>
-
-            {loginType === 'member' ? (
-              <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => handleAutofill('rep@acme.com')}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-all text-center group cursor-pointer"
-                >
-                  <div className="font-bold text-[#ff3b30] group-hover:underline">Sales Rep</div>
-                  <div className="text-neutral-500 text-[9px] truncate">rep@acme.com</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAutofill('manager@acme.com')}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-all text-center group cursor-pointer"
-                >
-                  <div className="font-bold text-amber-400 group-hover:underline">Manager</div>
-                  <div className="text-neutral-500 text-[9px] truncate">manager@acme.com</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAutofill('admin@acme.com')}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-all text-center group cursor-pointer"
-                >
-                  <div className="font-bold text-cyan-400 group-hover:underline">Admin</div>
-                  <div className="text-neutral-500 text-[9px] truncate">admin@acme.com</div>
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => handleAutofill('bruce@wayne.com')}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-all text-left group cursor-pointer"
-                >
-                  <div className="font-bold text-cyan-400 group-hover:underline">Wayne Enterprises</div>
-                  <div className="text-neutral-500 text-[9px] truncate">bruce@wayne.com (Gold)</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAutofill('tony@stark.com')}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-all text-left group cursor-pointer"
-                >
-                  <div className="font-bold text-purple-400 group-hover:underline">Stark Industries</div>
-                  <div className="text-neutral-500 text-[9px] truncate">tony@stark.com (Platinum)</div>
-                </button>
-              </div>
-            )}
-          </div>
 
           {/* New Company Onboarding Link */}
           <div className="pt-4 border-t border-neutral-800 text-center font-mono text-xs">

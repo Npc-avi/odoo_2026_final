@@ -87,3 +87,13 @@ export async function createPriceListItemApi(priceListId: string, data: any) {
     throw error.response?.data || { message: 'Failed to create price list item.' };
   }
 }
+
+export async function fetchPortalCatalogApi() {
+  try {
+    const res = await catalogApi.get('/portal');
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to fetch customer catalog.' };
+  }
+}
+

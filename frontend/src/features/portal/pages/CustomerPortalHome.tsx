@@ -91,33 +91,33 @@ export const CustomerPortalHome: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 2: RFQs */}
+        {/* Card 2: Billing & Invoices */}
         <div className="rounded-3xl border border-neutral-200 bg-white p-8 sm:p-10 flex flex-col justify-between hover:border-neutral-300 hover:shadow-md transition-all duration-300 shadow-sm group">
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3 font-mono text-xs text-neutral-500 uppercase">
               <span className="text-neutral-800 font-bold">SECTION // 02</span>
-              <span>INQUIRY</span>
+              <span>SETTLEMENTS</span>
             </div>
 
             <h3 className="font-display font-black text-2xl sm:text-3xl text-neutral-900 uppercase tracking-tight">
-              SUBMIT NEW RFQ
+              BILLING AND INVOICES
             </h3>
 
             <p className="text-xs sm:text-sm text-neutral-600 font-mono leading-relaxed">
-              Request bespoke custom configurations, bulk quantity tier discounts, and target delivery windows directly from operations.
+              Access real-time settlement ledgers, download verified tax invoices, track reconciliation status, and review payment history.
             </p>
           </div>
 
           <div className="pt-8 flex items-center justify-between">
             <ScrambleCTAButton
-              text="COMPOSE RFQ"
+              text="VIEW INVOICES"
               variant="black"
               size="sm"
               arrowIcon="diagonal"
-              onClick={() => navigate('/portal/rfqs')}
+              onClick={() => navigate('/portal/invoices')}
             />
             <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest font-semibold">
-              FAST-TRACK QUOTE
+              SETTLEMENT LEDGER
             </span>
           </div>
         </div>

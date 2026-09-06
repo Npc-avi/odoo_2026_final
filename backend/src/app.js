@@ -203,6 +203,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/portal/auth', portalAuthRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/rfq', rfqRoutes);
+app.use('/api/rfqs', rfqRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/negotiations', negotiationRoutes);

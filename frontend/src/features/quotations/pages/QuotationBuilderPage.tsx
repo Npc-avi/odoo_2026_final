@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   fetchCustomersApi,
   createQuotationApi,
@@ -12,6 +12,7 @@ import {
   updateQuotationApi,
 } from '../services/quotations.api';
 import { fetchProductsApi } from '@/features/catalog/services/catalog.api';
+import { fetchRfqDetailApi, rejectRfqApi } from '@/features/rfq/services/rfq.api';
 import { StatusBadge } from '@/components/StatusBadge';
 import {
   ArrowLeft,
@@ -93,6 +94,11 @@ export const QuotationBuilderPage: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [upsells, setUpsells] = useState<any[]>([]);
 
+  const [searchParams] = useSearchParams();
+  const fromRequestId = searchParams.get('fromRequest');
+  const [inboundRfq, setInboundRfq] = useState<any>(null);
+  const [rejectingRequest, setRejectingRequest] = useState<boolean>(false);
+
   // Form states for quotation scope
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [priceList, setPriceList] = useState<string>('Standard Commercial 2026');
@@ -108,6 +114,101 @@ export const QuotationBuilderPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [sendingQuote, setSendingQuote] = useState<boolean>(false);
+
+  const hasPrefilledRef = React.useRef(false);
+
+  // Handle prefill from inbound customer catalog request
+  useEffect(() => {
+    if (!fromRequestId) return;
+    if (hasPrefilledRef.current) return;
+    hasPrefilledRef.current = true;
+
+    let isCancelled = false;
+
+    const handlePrefill = async () => {
+      try {
+        const rfqData = await fetchRfqDetailApi(fromRequestId);
+        const rfq = rfqData.rfq;
+        if (!rfq || isCancelled) return;
+
+        setInboundRfq(rfq);
+
+        if (rfq.customer_id) {
+          setSelectedCustomerId(rfq.customer_id);
+        }
+        if (rfq.requested_delivery_date) {
+          setDeliveryDate(new Date(rfq.requested_delivery_date).toISOString().slice(0, 10));
+        }
+
+        // If newly initializing (?fromRequest on /quotations/new)
+        if (!id || id === 'new') {
+          setLoading(true);
+          const createRes = await createQuotationApi({
+            customerId: rfq.customer_id,
+            promisedDeliveryDate: rfq.requested_delivery_date || undefined,
+            status: 'draft',
+          });
+          const createdQuoteId = createRes.quotation.id;
+
+          // Add each requested product with its quantity and requested discount
+          if (Array.isArray(rfq.items)) {
+            for (const it of rfq.items) {
+              let reqDiscount = 0;
+              try {
+                const parsed = JSON.parse(it.line_notes || '{}');
+                reqDiscount = Number(parsed.requestedDiscountPct || 0);
+              } catch {
+                const m = (it.line_notes || '').match(/(\d+(?:\.\d+)?)%/);
+                if (m) reqDiscount = parseFloat(m[1]);
+              }
+
+              await addItemToQuotationApi(createdQuoteId, {
+                productId: it.product_id,
+                lineType: (it.item_type as any) || 'hardware',
+                quantity: it.requested_qty || 1,
+                appliedDiscountPct: reqDiscount,
+                lineNotes: it.line_notes || undefined,
+              });
+            }
+          }
+
+          toast.success(
+            `Prefilled ${rfq.items?.length || 0} product(s) and requested discounts from inbound catalog request.`
+          );
+          navigate(`/quotations/${createdQuoteId}/edit?fromRequest=${fromRequestId}`, {
+            replace: true,
+          });
+        }
+      } catch (err: any) {
+        console.error('Failed to prefill from quotation request:', err);
+      }
+    };
+
+    handlePrefill();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [fromRequestId, id, navigate]);
+
+  const handleRejectInboundRfq = async () => {
+    if (!fromRequestId) return;
+    try {
+      setRejectingRequest(true);
+      await rejectRfqApi(fromRequestId);
+      if (quotation?.id) {
+        try {
+          await updateQuotationApi(quotation.id, { status: 'rejected' });
+        } catch { }
+      }
+      toast.info('Inbound quotation request rejected and removed from queue.');
+      navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reject quotation request.');
+    } finally {
+      setRejectingRequest(false);
+    }
+  };
 
   // Load initial dropdowns
   useEffect(() => {
@@ -472,10 +573,10 @@ export const QuotationBuilderPage: React.FC = () => {
     return clientTier === 'Platinum'
       ? '20.00%'
       : clientTier === 'Gold'
-      ? '15.00%'
-      : clientTier === 'Silver'
-      ? '10.00%'
-      : '5.00%';
+        ? '15.00%'
+        : clientTier === 'Silver'
+          ? '10.00%'
+          : '5.00%';
   }, [clientTier]);
 
   // Only show products that actually exist in the database for upsells (Memoized)
@@ -553,6 +654,35 @@ export const QuotationBuilderPage: React.FC = () => {
           Enforces discount discipline, live upsells, blended risk scoring, and automated approval routing.
         </p>
       </div>
+
+      {/* Inbound Catalogue Request Banner with Reject Option */}
+      {inboundRfq && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <div>
+              <span className="font-bold uppercase tracking-wider text-amber-900">
+                INBOUND CATALOGUE REQUEST // {inboundRfq.customer_company_name || 'CUSTOMER ACCOUNT'} (RFQ-{inboundRfq.id?.slice(0, 8).toUpperCase()})
+              </span>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Customer-requested products and discount rates have been prefilled. Edit lines or discounts as needed, then save or submit for approval. Or reject below to dismiss.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={rejectingRequest}
+              onClick={handleRejectInboundRfq}
+              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold uppercase transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5 shadow-2xs"
+              title="Decline inbound catalog request and dismiss quote"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{rejectingRequest ? 'REJECTING...' : 'REJECT REQUEST'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="p-16 rounded-3xl border border-neutral-200 bg-white text-center space-y-3 font-mono shadow-sm">
@@ -865,11 +995,10 @@ export const QuotationBuilderPage: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span
-                            className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${
-                              isPromoted
+                            className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${isPromoted
                                 ? 'bg-cyan-100 text-cyan-800'
                                 : 'bg-neutral-200 text-neutral-700'
-                            }`}
+                              }`}
                           >
                             {rec.promo_text}
                           </span>
