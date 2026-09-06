@@ -4,6 +4,7 @@ import {
   GET_QUOTATION_CONFIRMATION_EMAIL_DATA,
   GET_QUOTATION_CONFIRMATION_ITEMS
 } from '../queries/quotation.query.js';
+import { queueEmailNotification } from '../queues/task.queue.js';
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.mailtrap.io';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '2525', 10);
@@ -107,13 +108,32 @@ export async function verifySmtpConnection() {
 }
 
 /**
+ * Dispatches email asynchronously via BullMQ queue with transparent fallback to direct delivery
+ */
+export async function dispatchEmail(mailOptions) {
+  try {
+    const job = await queueEmailNotification(mailOptions);
+    if (job && job.id) {
+      console.log(`[Email Service] Dispatched email to BullMQ queue for ${mailOptions.to} (Job ID: ${job.id})`);
+      return { success: true, queued: true, jobId: job.id };
+    }
+  } catch (err) {
+    console.warn(`[Email Service] BullMQ queue unavailable: ${err.message}. Falling back to direct dispatch.`);
+  }
+
+  // Transparent fallback if BullMQ/Redis is temporarily unreachable
+  const mailer = getTransporter();
+  const info = await mailer.sendMail(mailOptions);
+  return { success: true, delivered: true, messageId: info?.messageId };
+}
+
+/**
  * Sends magic link email asynchronously without blocking HTTP response
  */
 export function sendMagicLinkEmail({ toEmail, magicLink, customerCompanyName }) {
   setImmediate(async () => {
     try {
-      const mailer = getTransporter();
-      await mailer.sendMail({
+      await dispatchEmail({
         from: SMTP_FROM,
         to: toEmail,
         subject: `Your DealFlow360 Customer Portal Login Link`,
@@ -149,8 +169,7 @@ export function sendMagicLinkEmail({ toEmail, magicLink, customerCompanyName }) 
 export function sendRfqNotificationEmail({ repEmail, repName, customerName, rfqId }) {
   setImmediate(async () => {
     try {
-      const mailer = getTransporter();
-      await mailer.sendMail({
+      await dispatchEmail({
         from: SMTP_FROM,
         to: repEmail,
         subject: `[DealFlow 360] New Inbound RFQ from ${customerName}`,
@@ -440,9 +459,8 @@ DealFlow 360
         </html>
       `;
 
-      // 7. Send the email
-      const mailer = getTransporter();
-      const info = await mailer.sendMail({
+      // 7. Send the email via BullMQ / transparent fallback
+      await dispatchEmail({
         from: SMTP_FROM,
         to: customerEmail,
         subject: `Order Confirmed: Quotation ${quoteCode} - DealFlow 360`,
@@ -450,7 +468,7 @@ DealFlow 360
         html: htmlContent
       });
 
-      console.log(`[Email Service] Quotation confirmation email sent successfully to ${customerEmail} (Quote: ${quoteCode}, MessageId: ${info.messageId}).`);
+      console.log(`[Email Service] Quotation confirmation email dispatched successfully for ${customerEmail} (Quote: ${quoteCode}).`);
     } catch (err) {
       console.error(`[Email Service Error] Failed to send quotation confirmation email for quote ${quotationId}:`, err.message);
     }
@@ -642,8 +660,7 @@ DealFlow 360 Operations System
     </html>
   `;
 
-  const mailer = getTransporter();
-  const info = await mailer.sendMail({
+  const result = await dispatchEmail({
     from: SMTP_FROM,
     to: recipientEmail,
     subject: `[Executive Report] DealFlow 360 Governance & Sales Telemetry (${periodLabel})`,
@@ -651,6 +668,6 @@ DealFlow 360 Operations System
     html: htmlContent
   });
 
-  console.log(`[Email Service] Governance report email dispatched to ${recipientEmail} (MessageId: ${info.messageId}).`);
-  return { success: true, messageId: info.messageId, recipient: recipientEmail };
+  console.log(`[Email Service] Governance report email dispatched to ${recipientEmail}.`);
+  return { success: true, ...result, recipient: recipientEmail };
 }

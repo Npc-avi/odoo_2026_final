@@ -54,6 +54,16 @@ export async function registerStaff(req, res, next) {
 
     setStaffCookie(res, token);
 
+    // Persist session state in Redis
+    if (req.session) {
+      req.session.staffUser = {
+        userId: result.user.id,
+        tenantId: result.user.tenant_id,
+        role: result.user.role,
+        email: result.user.email
+      };
+    }
+
     return res.status(201).json({
       message: 'Staff user registered successfully.',
       token,
@@ -116,6 +126,16 @@ export async function loginStaff(req, res, next) {
 
     setStaffCookie(res, token);
 
+    // Persist session state in Redis
+    if (req.session) {
+      req.session.staffUser = {
+        userId: user.id,
+        tenantId: user.tenant_id,
+        role: user.role,
+        email: user.email
+      };
+    }
+
     return res.status(200).json({
       message: 'Login successful.',
       token,
@@ -173,6 +193,11 @@ export async function getStaffMe(req, res, next) {
  */
 export function logoutStaff(req, res) {
   clearStaffCookie(res);
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) console.warn('[Auth Controller] Session destroy warning:', err.message);
+    });
+  }
   return res.status(200).json({ message: 'Logged out successfully.' });
 }
 
@@ -356,6 +381,16 @@ export async function registerCompany(req, res, next) {
     });
 
     setStaffCookie(res, token);
+
+    // Persist session state in Redis
+    if (req.session) {
+      req.session.staffUser = {
+        userId: result.user.id,
+        tenantId: result.user.tenant_id,
+        role: result.user.role,
+        email: result.user.email
+      };
+    }
 
     return res.status(201).json({
       message: 'Company workspace and infrastructure initialized successfully.',

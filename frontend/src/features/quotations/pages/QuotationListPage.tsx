@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useQuotations } from '../hook/useQuotations';
 import { useSocket } from '@/context/socket.context';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -17,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export const QuotationListPage: React.FC = () => {
   const { quotations, loading, error, loadQuotations } = useQuotations();
@@ -24,6 +25,9 @@ export const QuotationListPage: React.FC = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Performance Optimization 1: Debounce search query to eliminate re-filter lag
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
 
   useEffect(() => {
     loadQuotations();
@@ -51,12 +55,15 @@ export const QuotationListPage: React.FC = () => {
     };
   }, [socket, loadQuotations]);
 
-  const filteredQuotes = quotations.filter((q) => {
-    const qCode = (q.quotation_code || q.quotation_number || '').toLowerCase();
-    const cName = (q.customer_company_name || q.company_name || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return qCode.includes(query) || cName.includes(query);
-  });
+  // Performance Optimization 2: Memoize filtered quotation list based on debounced search
+  const filteredQuotes = useMemo(() => {
+    const query = debouncedSearchQuery.toLowerCase();
+    return quotations.filter((q) => {
+      const qCode = (q.quotation_code || q.quotation_number || '').toLowerCase();
+      const cName = (q.customer_company_name || q.company_name || '').toLowerCase();
+      return qCode.includes(query) || cName.includes(query);
+    });
+  }, [quotations, debouncedSearchQuery]);
 
   // Stages for Kanban Pipeline
   const pipelineStages = [

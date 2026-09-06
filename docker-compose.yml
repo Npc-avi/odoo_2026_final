@@ -1,0 +1,96 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: dealflow360-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: dealflow360-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-avyay1012}
+      POSTGRES_DB: ${POSTGRES_DB:-deal_flow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: dealflow360-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    environment:
+      - REDIS_ARGS=--appendonly yes
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: dealflow360-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: dealflow360-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki-config.yml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: dealflow360-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  grafana_data:

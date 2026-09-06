@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   fetchCustomersApi,
@@ -28,6 +28,60 @@ import {
 } from 'lucide-react';
 import { useSocket } from '@/context/socket.context';
 import { toast } from 'react-toastify';
+import { useThrottledCallback } from '@/hooks/useThrottle';
+
+// Performance Optimization: Memoize individual line item rows to prevent re-rendering when typing in form
+const QuotationLineRow = React.memo<{
+  item: any;
+  isReadOnly: boolean;
+  onDeleteItem: (id: string) => void;
+}>(({ item, isReadOnly, onDeleteItem }) => {
+  const discount = Number(item.applied_discount_pct || 0);
+  const limit = item.line_type === 'service' ? 10 : item.line_type === 'software' ? 12 : 15;
+  const isOver = discount > limit;
+  const overPoints = (discount - limit).toFixed(0);
+
+  return (
+    <tr className="hover:bg-neutral-50/60 transition-colors">
+      <td className="py-4 px-4 font-bold text-neutral-900">
+        {item.product_name || 'Product'}
+        {item.product_sku && (
+          <span className="block text-[10px] text-neutral-400 font-normal">
+            {item.product_sku}
+          </span>
+        )}
+      </td>
+      <td className="py-4 px-4 text-center font-semibold text-neutral-700">{item.quantity}</td>
+      <td className="py-4 px-4 text-right font-bold text-neutral-900">
+        ₹{Number(item.unit_list_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      </td>
+      <td className="py-4 px-4 text-center font-bold text-neutral-900">{discount}%</td>
+      <td className="py-4 px-4 text-center text-neutral-500 font-medium">{limit}%</td>
+      <td className="py-4 px-4 text-center">
+        {isOver ? (
+          <span className="px-2 py-0.5 rounded-full bg-rose-50 text-[#ff3b30] border border-rose-200 text-[10px] font-bold">
+            OVER (+{overPoints}pt)
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+            OK
+          </span>
+        )}
+      </td>
+      {!isReadOnly && (
+        <td className="py-4 px-4 text-right">
+          <button
+            onClick={() => onDeleteItem(item.id)}
+            title="Remove item"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </td>
+      )}
+    </tr>
+  );
+});
 
 export const QuotationBuilderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -214,8 +268,8 @@ export const QuotationBuilderPage: React.FC = () => {
     }
   };
 
-  // Submit for Approval action
-  const handleSubmitForApproval = async () => {
+  // Submit for Approval action (Performance: Throttled against rapid double-clicks)
+  const handleSubmitForApproval = useThrottledCallback(async () => {
     if (isInFulfillment) {
       toast.info('Quotation is in fulfillment and cannot be modified.');
       return;
@@ -257,7 +311,7 @@ export const QuotationBuilderPage: React.FC = () => {
         setSubmitting(false);
       }
     }
-  };
+  }, 1000);
 
   // Add line item
   const handleAddItem = async (e: React.FormEvent) => {
@@ -328,8 +382,8 @@ export const QuotationBuilderPage: React.FC = () => {
     }
   };
 
-  // Delete line item
-  const handleDeleteItem = async (itemId: string) => {
+  // Delete line item (Performance: Memoized callback for QuotationLineRow)
+  const handleDeleteItem = useCallback(async (itemId: string) => {
     if (isInFulfillment || isConfirmed) return;
     if (!quotation?.id) return;
     try {
@@ -339,7 +393,7 @@ export const QuotationBuilderPage: React.FC = () => {
     } catch (err: any) {
       toast.error(err.message || 'Failed to remove item.');
     }
-  };
+  }, [isInFulfillment, isConfirmed, quotation?.id, loadQuotation]);
 
   // Add upsell recommendation directly
   const handleAddUpsell = async (upsell: any) => {
@@ -381,8 +435,8 @@ export const QuotationBuilderPage: React.FC = () => {
     }
   };
 
-  // Send to Customer Portal
-  const handleSendToCustomer = async () => {
+  // Send to Customer Portal (Performance: Throttled against double-clicks)
+  const handleSendToCustomer = useThrottledCallback(async () => {
     if (isInFulfillment || isConfirmed) return;
     if (!quotation?.id) return;
     try {
@@ -395,44 +449,47 @@ export const QuotationBuilderPage: React.FC = () => {
     } finally {
       setSendingQuote(false);
     }
-  };
+  }, 1000);
 
-  // Calculate Metrics for Top 4 Cards
+  // Performance Optimization: Memoize complex aggregation calculations
   const totalAmount = Number(quotation?.total_amount || 0);
   const subtotalAmount = Number(quotation?.subtotal_amount || totalAmount);
   const items = quotation?.items || [];
 
-  const totalCost = items.reduce(
-    (acc: number, it: any) => acc + Number(it.unit_cost_price || it.unit_cost || 0) * Number(it.quantity || 1),
-    0
-  );
-  const grossProfit = Math.max(0, totalAmount - totalCost);
-  const liveMarginPct = totalAmount > 0 ? ((grossProfit / totalAmount) * 100).toFixed(1) : '0.0';
+  const totalCost = useMemo(() => {
+    return items.reduce(
+      (acc: number, it: any) => acc + Number(it.unit_cost_price || it.unit_cost || 0) * Number(it.quantity || 1),
+      0
+    );
+  }, [items]);
+
+  const grossProfit = useMemo(() => Math.max(0, totalAmount - totalCost), [totalAmount, totalCost]);
+  const liveMarginPct = useMemo(() => (totalAmount > 0 ? ((grossProfit / totalAmount) * 100).toFixed(1) : '0.0'), [grossProfit, totalAmount]);
 
   const riskScore = Math.round(Number(quotation?.blended_risk_score || 0));
   const clientTier = selectedCustomer?.tier || 'Bronze';
-  const tierCeiling =
-    clientTier === 'Platinum'
+  const tierCeiling = useMemo(() => {
+    return clientTier === 'Platinum'
       ? '20.00%'
       : clientTier === 'Gold'
       ? '15.00%'
       : clientTier === 'Silver'
       ? '10.00%'
       : '5.00%';
+  }, [clientTier]);
 
-  // Only show products that actually exist in the database for upsells
-  const existingProductIds = items.map((item: any) => item.product_id);
-  const dbCandidateProducts = products.filter((p: any) => !existingProductIds.includes(p.id));
-
-  const displayUpsells = (
-    upsells.length > 0 ? upsells : dbCandidateProducts.slice(0, 4)
-  ).map((p: any) => ({
-    suggested_product_id: p.suggested_product_id || p.id,
-    suggested_product_name: p.suggested_product_name || p.name,
-    item_type: p.item_type || 'hardware',
-    suggested_price: p.suggested_price || p.base_price,
-    promo_text: p.is_promoted ? 'PROMOTED' : 'CO-PURCHASE',
-  }));
+  // Only show products that actually exist in the database for upsells (Memoized)
+  const displayUpsells = useMemo(() => {
+    const existingProductIds = items.map((item: any) => item.product_id);
+    const dbCandidateProducts = products.filter((p: any) => !existingProductIds.includes(p.id));
+    return (upsells.length > 0 ? upsells : dbCandidateProducts.slice(0, 4)).map((p: any) => ({
+      suggested_product_id: p.suggested_product_id || p.id,
+      suggested_product_name: p.suggested_product_name || p.name,
+      item_type: p.item_type || 'hardware',
+      suggested_price: p.suggested_price || p.base_price,
+      promo_text: p.is_promoted ? 'PROMOTED' : 'CO-PURCHASE',
+    }));
+  }, [items, products, upsells]);
 
   const clientName = quotation?.customer_company_name || selectedCustomer?.company_name || 'Initech Corporation';
   const quoteDisplayCode = quotation?.quotation_code || (id && id !== 'new' ? `QT-${id.slice(0, 8)}` : 'QT-undefined');
@@ -670,53 +727,14 @@ export const QuotationBuilderPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100 text-neutral-800">
-                    {items.map((item: any) => {
-                      const discount = Number(item.applied_discount_pct || 0);
-                      const limit = item.line_type === 'service' ? 10 : item.line_type === 'software' ? 12 : 15;
-                      const isOver = discount > limit;
-                      const overPoints = (discount - limit).toFixed(0);
-
-                      return (
-                        <tr key={item.id} className="hover:bg-neutral-50/60 transition-colors">
-                          <td className="py-4 px-4 font-bold text-neutral-900">
-                            {item.product_name || 'Product'}
-                            {item.product_sku && (
-                              <span className="block text-[10px] text-neutral-400 font-normal">
-                                {item.product_sku}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-4 text-center font-semibold text-neutral-700">{item.quantity}</td>
-                          <td className="py-4 px-4 text-right font-bold text-neutral-900">
-                            ₹{Number(item.unit_list_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-4 px-4 text-center font-bold text-neutral-900">{discount}%</td>
-                          <td className="py-4 px-4 text-center text-neutral-500 font-medium">{limit}%</td>
-                          <td className="py-4 px-4 text-center">
-                            {isOver ? (
-                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-[#ff3b30] border border-rose-200 text-[10px] font-bold">
-                                OVER (+{overPoints}pt)
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                                OK
-                              </span>
-                            )}
-                          </td>
-                          {!isReadOnly && (
-                            <td className="py-4 px-4 text-right">
-                              <button
-                                onClick={() => handleDeleteItem(item.id)}
-                                title="Remove item"
-                                className="p-1.5 rounded-lg text-neutral-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
+                    {items.map((item: any) => (
+                      <QuotationLineRow
+                        key={item.id}
+                        item={item}
+                        isReadOnly={isReadOnly}
+                        onDeleteItem={handleDeleteItem}
+                      />
+                    ))}
                   </tbody>
                 </table>
               </div>

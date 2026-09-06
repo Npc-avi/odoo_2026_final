@@ -59,6 +59,16 @@ export async function loginPortal(req, res, next) {
 
     setPortalCookie(res, token);
 
+    // Persist session state in Redis
+    if (req.session) {
+      req.session.portalUser = {
+        portalUserId: portalUser.id,
+        customerId: portalUser.customer_id,
+        tenantId: portalUser.tenant_id,
+        email: portalUser.email
+      };
+    }
+
     return res.status(200).json({
       message: 'Customer portal login successful.',
       token,
@@ -164,6 +174,16 @@ export async function verifyMagicLink(req, res, next) {
 
     setPortalCookie(res, jwtToken);
 
+    // Persist session state in Redis
+    if (req.session) {
+      req.session.portalUser = {
+        portalUserId: portalUser.id,
+        customerId: portalUser.customer_id,
+        tenantId: portalUser.tenant_id,
+        email: portalUser.email
+      };
+    }
+
     return res.status(200).json({
       message: 'Portal session verified successfully.',
       token: jwtToken,
@@ -236,5 +256,10 @@ export async function getPortalMe(req, res, next) {
  */
 export function logoutPortal(req, res) {
   clearPortalCookie(res);
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) console.warn('[Portal Auth Controller] Session destroy warning:', err.message);
+    });
+  }
   return res.status(200).json({ message: 'Customer portal logged out successfully.' });
 }

@@ -36,6 +36,12 @@ export function verifyStaffToken(req, res, next) {
     }
 
     req.actor = payload;
+
+    // Seamlessly synchronize active actor state into Redis session without touching JWT cookies
+    if (req.session) {
+      req.session.staffUser = payload;
+    }
+
     next();
   } catch (err) {
     const error = new Error('Invalid or expired staff session.');
@@ -65,6 +71,12 @@ export function verifyPortalToken(req, res, next) {
     }
 
     req.actor = payload;
+
+    // Seamlessly synchronize active customer portal actor state into Redis session
+    if (req.session) {
+      req.session.portalUser = payload;
+    }
+
     next();
   } catch (err) {
     const error = new Error('Invalid or expired customer portal session.');

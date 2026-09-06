@@ -1,4 +1,5 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
+import { getCached, setCached, delCached } from '../config/redis.js';
 import {
   getCategories,
   createCategory,
@@ -16,12 +17,22 @@ import {
   getPortalCatalog
 } from '../repository/catalog.repository.js';
 
-// Categories
+// Categories with Cache-Aside pattern (1 hour TTL)
 export async function listCategories(req, res, next) {
   try {
+    const cacheKey = `catalog:categories:${req.actor.tenantId}`;
+    const cached = await getCached(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.status(200).json({ categories: cached });
+    }
+
     const categories = await withTenantContext(req.actor, async (client) => {
       return getCategories(client);
     });
+
+    await setCached(cacheKey, categories, 3600);
+    res.setHeader('X-Cache', 'MISS');
     return res.status(200).json({ categories });
   } catch (err) {
     next(err);
@@ -33,18 +44,32 @@ export async function addCategory(req, res, next) {
     const category = await withTenantContext(req.actor, async (client) => {
       return createCategory(client, req.actor.tenantId, req.body);
     });
+
+    // Invalidate categories cache
+    await delCached(`catalog:categories:${req.actor.tenantId}`);
+
     return res.status(201).json({ category });
   } catch (err) {
     next(err);
   }
 }
 
-// Products (Staff)
+// Products (Staff) with Cache-Aside pattern (1 hour TTL)
 export async function listProducts(req, res, next) {
   try {
+    const cacheKey = `catalog:products:${req.actor.tenantId}`;
+    const cached = await getCached(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.status(200).json({ products: cached });
+    }
+
     const products = await withTenantContext(req.actor, async (client) => {
       return getProductsStaff(client);
     });
+
+    await setCached(cacheKey, products, 3600);
+    res.setHeader('X-Cache', 'MISS');
     return res.status(200).json({ products });
   } catch (err) {
     next(err);
@@ -78,6 +103,10 @@ export async function addProduct(req, res, next) {
     const product = await withTenantContext(req.actor, async (client) => {
       return createProduct(client, req.actor.tenantId, req.body);
     });
+
+    // Invalidate products cache
+    await delCached(`catalog:products:${req.actor.tenantId}`);
+
     return res.status(201).json({ product });
   } catch (err) {
     next(err);
@@ -96,6 +125,9 @@ export async function editProduct(req, res, next) {
       err.status = 404;
       return next(err);
     }
+
+    // Invalidate products cache
+    await delCached(`catalog:products:${req.actor.tenantId}`);
 
     return res.status(200).json({ product });
   } catch (err) {

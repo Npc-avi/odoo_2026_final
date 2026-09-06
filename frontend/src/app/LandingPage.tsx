@@ -3,7 +3,6 @@ import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/features/landing_page/hero/components/HeroSection';
 import { ScatteredParallaxIntro } from '@/features/landing_page/intro/components/ScatteredParallaxIntro';
 import { TechnicalServiceGrid } from '@/features/landing_page/services/components/TechnicalServiceGrid';
-import { VideoBreakoutSection } from '@/features/landing_page/breakout/components/VideoBreakoutSection';
 import { TwoColumnProcessSection } from '@/features/landing_page/process/components/TwoColumnProcessSection';
 import { KineticFooter } from '@/features/landing_page/footer/components/KineticFooter';
 
@@ -29,13 +28,10 @@ export const LandingPage: React.FC = () => {
       {/* 3. Core System Modules Matrix (Discount, Warehouse, Billing, Portal) */}
       <TechnicalServiceGrid />
 
-      {/* 4. Full-Bleed Telemetry HUD Breakout */}
-      <VideoBreakoutSection />
-
-      {/* 5. Two-Column Split Sticky Process & Quotation-to-Cash Workflow */}
+      {/* 4. Two-Column Split Sticky Process & Quotation-to-Cash Workflow */}
       <TwoColumnProcessSection />
 
-      {/* 6. Kinetic Mega-Footer */}
+      {/* 5. Kinetic Mega-Footer */}
       <KineticFooter />
     </div>
   );

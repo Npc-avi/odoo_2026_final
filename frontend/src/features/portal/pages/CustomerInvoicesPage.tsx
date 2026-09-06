@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { fetchPortalInvoicesApi } from '@/features/billing/services/billing.api';
 import { exportInvoiceQuotationPDF, exportInvoiceQuotationDOCX } from '@/features/billing/utils/documentExport';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   FileText,
   CreditCard,
@@ -57,24 +58,33 @@ export const CustomerInvoicesPage: React.FC = () => {
     };
   }, [socket]);
 
-  const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
-  const totalPaid = invoices
-    .filter((inv) => inv.status === 'paid')
-    .reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
-  const outstandingBalance = totalBilled - totalPaid;
+  // Performance Optimization 1: Debounce search input
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
 
-  const filteredInvoices = invoices.filter((inv) => {
-    const isPaid = inv.status === 'paid';
-    if (statusFilter === 'paid' && !isPaid) return false;
-    if (statusFilter === 'unpaid' && isPaid) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchNum = (inv.invoice_number || '').toLowerCase().includes(q);
-      const matchQuote = (inv.quotation_code || '').toLowerCase().includes(q);
-      if (!matchNum && !matchQuote) return false;
-    }
-    return true;
-  });
+  // Performance Optimization 2: Memoize financial balance calculations
+  const totalBilled = useMemo(() => invoices.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0), [invoices]);
+  const totalPaid = useMemo(() => {
+    return invoices
+      .filter((inv) => inv.status === 'paid')
+      .reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
+  }, [invoices]);
+  const outstandingBalance = useMemo(() => totalBilled - totalPaid, [totalBilled, totalPaid]);
+
+  // Performance Optimization 3: Memoize filtered invoices based on debounced search
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const isPaid = inv.status === 'paid';
+      if (statusFilter === 'paid' && !isPaid) return false;
+      if (statusFilter === 'unpaid' && isPaid) return false;
+      if (debouncedSearchQuery.trim()) {
+        const q = debouncedSearchQuery.toLowerCase();
+        const matchNum = (inv.invoice_number || '').toLowerCase().includes(q);
+        const matchQuote = (inv.quotation_code || '').toLowerCase().includes(q);
+        if (!matchNum && !matchQuote) return false;
+      }
+      return true;
+    });
+  }, [invoices, statusFilter, debouncedSearchQuery]);
 
   return (
     <div className="app-page space-y-8 font-sans animate-fadeIn text-[#111111]">

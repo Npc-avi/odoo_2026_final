@@ -20,6 +20,7 @@ import { useAuth } from '@/features/auth/hook/useAuth';
 import { useRazorpayCheckout } from '../hook/useRazorpay';
 import { useSocket } from '@/context/socket.context';
 import { Zap } from 'lucide-react';
+import { useThrottledCallback } from '@/hooks/useThrottle';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,7 +74,8 @@ export const InvoiceDetailPage: React.FC = () => {
     };
   }, [socket, id]);
 
-  const handlePayWithRazorpay = () => {
+  // Performance Optimization: Guard checkout modal launch against duplicate rapid clicks
+  const handlePayWithRazorpay = useThrottledCallback(() => {
     if (!invoice?.id) return;
     initiatePayment({
       invoice,
@@ -85,10 +87,11 @@ export const InvoiceDetailPage: React.FC = () => {
         loadInvoiceData();
       },
     });
-  };
+  }, 1000);
 
-  const handleRecordPayment = async () => {
-    if (!invoice?.id) return;
+  // Performance Optimization: Guard manual payment recording against double-submits
+  const handleRecordPayment = useThrottledCallback(async () => {
+    if (!invoice?.id || paying) return;
     try {
       setPaying(true);
       await recordPaymentApi(invoice.id);
@@ -99,7 +102,7 @@ export const InvoiceDetailPage: React.FC = () => {
     } finally {
       setPaying(false);
     }
-  };
+  }, 1000);
 
   const handleDownloadPDF = () => {
     try {

@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchInvoicesApi } from '../services/billing.api';
 import { RefreshCw, Search, ArrowRight, Receipt, CheckCircle2, Clock } from 'lucide-react';
 import { useSocket } from '@/context/socket.context';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useSWR } from '@/hooks/useSWR';
 
 export const InvoiceListPage: React.FC = () => {
   const navigate = useNavigate();
   const { socket } = useSocket();
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Filters & Bifurcation state
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'unpaid' | 'paid'>('all');
@@ -17,27 +16,28 @@ export const InvoiceListPage: React.FC = () => {
   const [amountRange, setAmountRange] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const loadInvoices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetchInvoicesApi();
-      setInvoices(res.invoices || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch invoices');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Performance Optimization 1: Debounce search input to prevent re-filtering on every keystroke
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
 
-  useEffect(() => {
-    loadInvoices();
+  // Performance Optimization 2: Stale-While-Revalidate caching (instant tab loads, zero flicker)
+  const fetchInvoicesWrapper = useCallback(async () => {
+    const res = await fetchInvoicesApi();
+    return res.invoices || [];
   }, []);
+
+  const { data: cachedInvoices, isLoading: loading, error: swrError, revalidate } = useSWR<any[]>(
+    'invoices-list',
+    fetchInvoicesWrapper,
+    { ttl: 15000 }
+  );
+
+  const invoices = cachedInvoices || [];
+  const error = swrError ? swrError.message : null;
 
   useEffect(() => {
     if (!socket) return;
     const handleInvoiceUpdate = () => {
-      loadInvoices();
+      revalidate();
     };
     socket.on('invoice:created', handleInvoiceUpdate);
     socket.on('invoice:updated', handleInvoiceUpdate);
@@ -47,11 +47,11 @@ export const InvoiceListPage: React.FC = () => {
       socket.off('invoice:updated', handleInvoiceUpdate);
       socket.off('quotation:updated', handleInvoiceUpdate);
     };
-  }, [socket]);
+  }, [socket, revalidate]);
 
-  // Calculate status counts
-  const unpaidCount = invoices.filter((i) => i.status !== 'paid').length;
-  const paidCount = invoices.filter((i) => i.status === 'paid').length;
+  // Performance Optimization 3: Memoize status calculations
+  const unpaidCount = useMemo(() => invoices.filter((i) => i.status !== 'paid').length, [invoices]);
+  const paidCount = useMemo(() => invoices.filter((i) => i.status === 'paid').length, [invoices]);
 
   // Extract distinct customers for bifurcation
   const uniqueCustomers = useMemo(() => {
@@ -83,9 +83,9 @@ export const InvoiceListPage: React.FC = () => {
       if (amountRange === '5k_to_10k' && (amount < 5000 || amount > 10000)) return false;
       if (amountRange === 'over_10k' && amount <= 10000) return false;
 
-      // Search query (invoice # or customer)
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      // Search query (invoice # or customer) - debounced for optimal UI responsiveness
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.toLowerCase();
         const matchesNum = inv.invoice_number?.toLowerCase().includes(query);
         const matchesCust = inv.customer_name?.toLowerCase().includes(query);
         const matchesQuote = inv.quotation_code?.toLowerCase().includes(query);
@@ -94,7 +94,7 @@ export const InvoiceListPage: React.FC = () => {
 
       return true;
     });
-  }, [invoices, selectedStatus, selectedCustomer, amountRange, searchQuery]);
+  }, [invoices, selectedStatus, selectedCustomer, amountRange, debouncedSearchQuery]);
 
   // Format due date like screenshot: "Sep 10", "Sep 15", "Aug 30"
   const formatDueDate = (dateStr?: string) => {
@@ -159,7 +159,7 @@ export const InvoiceListPage: React.FC = () => {
           )}
 
           <button
-            onClick={loadInvoices}
+            onClick={() => revalidate()}
             className="btn-icon ml-1"
             title="Refresh Invoices Ledger"
           >
