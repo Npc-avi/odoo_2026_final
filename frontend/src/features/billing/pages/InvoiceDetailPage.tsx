@@ -17,11 +17,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/features/auth/hook/useAuth';
+import { useRazorpayCheckout } from '../hook/useRazorpay';
+import { useSocket } from '@/context/socket.context';
+import { Zap } from 'lucide-react';
 
 export const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { socket } = useSocket();
+  const { initiatePayment, processing: razorpayProcessing } = useRazorpayCheckout();
 
   const isPortal = user?.role === 'customer_portal';
   const canRecordPayment = !isPortal && ['admin', 'finance', 'sales_manager'].includes(user?.role || '');
@@ -54,6 +59,33 @@ export const InvoiceDetailPage: React.FC = () => {
   useEffect(() => {
     loadInvoiceData();
   }, [id]);
+
+  useEffect(() => {
+    if (!socket || !id) return;
+    const handleInvoiceUpdate = (data: any) => {
+      if (data?.invoiceId === id || !data?.invoiceId) {
+        loadInvoiceData();
+      }
+    };
+    socket.on('invoice:updated', handleInvoiceUpdate);
+    return () => {
+      socket.off('invoice:updated', handleInvoiceUpdate);
+    };
+  }, [socket, id]);
+
+  const handlePayWithRazorpay = () => {
+    if (!invoice?.id) return;
+    initiatePayment({
+      invoice,
+      currency: quotation?.currency || undefined,
+      user,
+      onSuccess: () => {
+        // Immediate state change to 'paid'
+        setInvoice((prev: any) => (prev ? { ...prev, status: 'paid', paid_at: new Date().toISOString() } : prev));
+        loadInvoiceData();
+      },
+    });
+  };
 
   const handleRecordPayment = async () => {
     if (!invoice?.id) return;
@@ -306,7 +338,7 @@ export const InvoiceDetailPage: React.FC = () => {
                       )}
                     </td>
                     <td className="app-td text-right font-bold text-neutral-900 font-mono text-sm">
-                      ${invAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{invAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="app-td text-center">
                       <span
@@ -333,21 +365,42 @@ export const InvoiceDetailPage: React.FC = () => {
 
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-3 pt-2">
+        {!isPaid && (
+          <button
+            onClick={handlePayWithRazorpay}
+            disabled={razorpayProcessing || paying}
+            className="btn rounded-full bg-gradient-to-r from-[#ff3b30] to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer px-6 py-2.5"
+            title="Settle invoice securely via Razorpay"
+          >
+            {razorpayProcessing ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                <span>PROCESSING RAZORPAY...</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 fill-amber-300 text-amber-300" />
+                <span>PAY NOW (RAZORPAY)</span>
+              </>
+            )}
+          </button>
+        )}
+
         {!isPaid && canRecordPayment && (
           <button
             onClick={handleRecordPayment}
-            disabled={paying}
-            className="btn btn-success rounded-full shadow-sm cursor-pointer"
+            disabled={paying || razorpayProcessing}
+            className="btn btn-secondary rounded-full shadow-sm cursor-pointer"
           >
             <CreditCard className="w-4 h-4" />
-            <span>{paying ? 'RECORDING SETTLEMENT...' : 'Record Payment Settlement'}</span>
+            <span>{paying ? 'RECORDING SETTLEMENT...' : 'Manual Settlement'}</span>
           </button>
         )}
 
         {!isPaid && !canRecordPayment && (
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-mono font-bold text-xs uppercase tracking-wider">
             <Clock className="w-4 h-4 text-amber-600" />
-            <span>Payment Pending Reconcile</span>
+            <span>Payment Due</span>
           </div>
         )}
 
@@ -447,9 +500,9 @@ export const InvoiceDetailPage: React.FC = () => {
                         <td className="app-td font-bold text-neutral-900">{desc}</td>
                         <td className="app-td uppercase text-[10px] text-neutral-500 font-semibold">{type}</td>
                         <td className="app-td text-center font-bold text-neutral-900 font-mono">{qty}</td>
-                        <td className="app-td text-right text-neutral-700 font-mono">${price.toFixed(2)}</td>
+                        <td className="app-td text-right text-neutral-700 font-mono">₹{price.toFixed(2)}</td>
                         <td className="app-td text-right text-emerald-600 font-bold font-mono">{discount}</td>
-                        <td className="app-td text-right font-bold text-neutral-900 font-mono">${total.toFixed(2)}</td>
+                        <td className="app-td text-right font-bold text-neutral-900 font-mono">₹{total.toFixed(2)}</td>
                       </tr>
                     );
                   })
@@ -480,7 +533,7 @@ export const InvoiceDetailPage: React.FC = () => {
                       {sh.status || 'shipped'}
                     </span>
                     <span className="text-[11px] text-neutral-500 block mt-1 font-mono">
-                      Shipping: ${Number(sh.shipping_cost || 0).toFixed(2)}
+                      Shipping: ₹{Number(sh.shipping_cost || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -495,19 +548,19 @@ export const InvoiceDetailPage: React.FC = () => {
             <div className="flex justify-between text-neutral-600">
               <span>Subtotal:</span>
               <span className="font-bold text-neutral-900">
-                ${Number(invoice.subtotal_amount || invoice.total_amount * 0.9259).toFixed(2)}
+                ₹{Number(invoice.subtotal_amount || invoice.total_amount * 0.9259).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-neutral-600">
               <span>Tax (8%):</span>
               <span className="font-bold text-neutral-900">
-                ${Number(invoice.tax_amount || invoice.total_amount * 0.0741).toFixed(2)}
+                ₹{Number(invoice.tax_amount || invoice.total_amount * 0.0741).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between border-t border-neutral-200 pt-2 text-sm font-bold text-neutral-900">
               <span>Grand Total:</span>
               <span className="text-[#ff3b30] font-black text-base">
-                ${Number(invoice.total_amount || 0).toFixed(2)}
+                ₹{Number(invoice.total_amount || 0).toFixed(2)}
               </span>
             </div>
           </div>

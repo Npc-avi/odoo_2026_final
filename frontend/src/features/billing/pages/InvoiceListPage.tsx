@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchInvoicesApi } from '../services/billing.api';
 import { RefreshCw, Search, ArrowRight, Receipt, CheckCircle2, Clock } from 'lucide-react';
+import { useSocket } from '@/context/socket.context';
 
 export const InvoiceListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { socket } = useSocket();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,21 @@ export const InvoiceListPage: React.FC = () => {
   useEffect(() => {
     loadInvoices();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleInvoiceUpdate = () => {
+      loadInvoices();
+    };
+    socket.on('invoice:created', handleInvoiceUpdate);
+    socket.on('invoice:updated', handleInvoiceUpdate);
+    socket.on('quotation:updated', handleInvoiceUpdate);
+    return () => {
+      socket.off('invoice:created', handleInvoiceUpdate);
+      socket.off('invoice:updated', handleInvoiceUpdate);
+      socket.off('quotation:updated', handleInvoiceUpdate);
+    };
+  }, [socket]);
 
   // Calculate status counts
   const unpaidCount = invoices.filter((i) => i.status !== 'paid').length;
@@ -196,10 +213,10 @@ export const InvoiceListPage: React.FC = () => {
               className="app-select"
             >
               <option value="all">All Amount Ranges</option>
-              <option value="under_1k">Amount &lt; $1,000</option>
-              <option value="1k_to_5k">Amount $1,000 – $5,000</option>
-              <option value="5k_to_10k">Amount $5,000 – $10,000</option>
-              <option value="over_10k">Amount &gt; $10,000</option>
+              <option value="under_1k">Amount &lt; ₹1,000</option>
+              <option value="1k_to_5k">Amount ₹1,000 – ₹5,000</option>
+              <option value="5k_to_10k">Amount ₹5,000 – ₹10,000</option>
+              <option value="over_10k">Amount &gt; ₹10,000</option>
             </select>
           </div>
 
@@ -270,7 +287,7 @@ export const InvoiceListPage: React.FC = () => {
                         {inv.customer_name || 'Client Account'}
                       </td>
                       <td className="app-td app-td-currency text-sm">
-                        ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                       </td>
                       <td className="app-td app-td-center">
                         <span className={`app-badge ${isPaid ? 'badge-paid' : 'badge-backorder'}`}>

@@ -516,9 +516,9 @@ export const QuotationBuilderPage: React.FC = () => {
                 CONTRACT VALUE
               </span>
               <div className="font-display font-black text-3xl text-neutral-900 tracking-tight">
-                ${totalAmount.toFixed(2)}
+                ₹{totalAmount.toFixed(2)}
               </div>
-              <p className="text-xs font-mono text-neutral-400">Subtotal: ${subtotalAmount.toFixed(2)}</p>
+              <p className="text-xs font-mono text-neutral-400">Subtotal: ₹{subtotalAmount.toFixed(2)}</p>
             </div>
 
             {/* Card 2: LIVE MARGIN */}
@@ -529,7 +529,7 @@ export const QuotationBuilderPage: React.FC = () => {
               <div className="font-display font-black text-3xl text-[#ff3b30] tracking-tight">
                 {liveMarginPct}%
               </div>
-              <p className="text-xs font-mono text-neutral-400">Gross Profit: ${grossProfit.toFixed(2)}</p>
+              <p className="text-xs font-mono text-neutral-400">Gross Profit: ₹{grossProfit.toFixed(2)}</p>
             </div>
 
             {/* Card 3: BLENDED RISK SCORE (Mint Green Border/Tint) */}
@@ -688,7 +688,7 @@ export const QuotationBuilderPage: React.FC = () => {
                           </td>
                           <td className="py-4 px-4 text-center font-semibold text-neutral-700">{item.quantity}</td>
                           <td className="py-4 px-4 text-right font-bold text-neutral-900">
-                            ${Number(item.unit_list_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            ₹{Number(item.unit_list_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                           <td className="py-4 px-4 text-center font-bold text-neutral-900">{discount}%</td>
                           <td className="py-4 px-4 text-center text-neutral-500 font-medium">{limit}%</td>
@@ -769,7 +769,7 @@ export const QuotationBuilderPage: React.FC = () => {
                     <option value="">-- Select Product --</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} (${Number(p.base_price).toLocaleString()})
+                        {p.name} (₹{Number(p.base_price).toLocaleString()})
                       </option>
                     ))}
                   </select>
@@ -863,7 +863,7 @@ export const QuotationBuilderPage: React.FC = () => {
                           {title}
                         </h4>
                         <p className="text-[11px] font-mono font-bold text-emerald-600">+2.1% Margin Delta</p>
-                        <p className="text-xs font-mono text-neutral-500 font-semibold">${price} Base</p>
+                        <p className="text-xs font-mono text-neutral-500 font-semibold">₹{price} Base</p>
                       </div>
 
                       <button
@@ -969,7 +969,7 @@ export const QuotationBuilderPage: React.FC = () => {
               <div className="font-mono text-sm text-neutral-500 font-medium">
                 Total Deal:{' '}
                 <strong className="text-neutral-900 text-lg font-bold ml-1">
-                  ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
               </div>
             )}

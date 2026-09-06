@@ -127,7 +127,7 @@ export const CustomerQuotesPage: React.FC = () => {
                         {q.quotation_code || q.quotation_number || targetId.slice(0, 8).toUpperCase()}
                       </td>
                       <td className="px-6 py-4 font-bold text-neutral-900 text-sm">
-                        ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        ₹{Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={q.status || 'draft'} />

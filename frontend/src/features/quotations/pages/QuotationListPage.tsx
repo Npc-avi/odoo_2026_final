@@ -208,7 +208,7 @@ export const QuotationListPage: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-[11px] font-mono text-neutral-500 mt-1 font-semibold">
-                    ${totalStageValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                    ₹{totalStageValue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                   </div>
                 </div>
 
@@ -233,7 +233,7 @@ export const QuotationListPage: React.FC = () => {
 
                       <div className="flex items-baseline justify-between pt-2 border-t border-neutral-100 font-mono">
                         <span className="text-neutral-900 font-bold text-sm">
-                          ${Number(quote.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          ₹{Number(quote.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                         {quote.total_margin_pct && (
                           <span className="text-[11px] text-emerald-700 font-bold">
@@ -292,7 +292,7 @@ export const QuotationListPage: React.FC = () => {
                       <StatusBadge status={quote.status} repApproved={quote.rep_approved} />
                     </td>
                     <td className="py-4 px-6 text-neutral-900 font-bold">
-                      ${Number(quote.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹{Number(quote.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-4 px-6 text-emerald-700 font-bold">
                       {quote.total_margin_pct ? `${Number(quote.total_margin_pct).toFixed(1)}%` : '—'}

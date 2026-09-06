@@ -91,3 +91,32 @@ export async function fetchPortalInvoiceByIdApi(id: string) {
     throw error.response?.data || { message: `Failed to fetch invoice ${id}.` };
   }
 }
+
+/**
+ * Razorpay Payment Gateway APIs
+ */
+export async function createRazorpayOrderApi(invoiceId: string, currency?: string) {
+  try {
+    const res = await billingApi.post(`/invoices/${invoiceId}/razorpay-order`, { currency });
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to initiate Razorpay order.' };
+  }
+}
+
+export async function verifyRazorpayPaymentApi(
+  invoiceId: string,
+  payload: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }
+) {
+  try {
+    const res = await billingApi.post(`/invoices/${invoiceId}/verify-razorpay`, payload);
+    return res.data;
+  } catch (error: any) {
+    throw error.response?.data || { message: 'Failed to verify Razorpay payment.' };
+  }
+}
+

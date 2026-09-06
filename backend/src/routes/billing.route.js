@@ -5,7 +5,9 @@ import {
   getInvoice,
   recordPayment,
   listCustomerInvoices,
-  getCustomerInvoice
+  getCustomerInvoice,
+  createRazorpayOrderForInvoice,
+  verifyRazorpayPayment
 } from '../controller/billing.controller.js';
 import { validateRecordPayment } from '../validation/billing.validator.js';
 import {
@@ -30,6 +32,10 @@ router.get('/invoices/:id', verifyStaffOrPortalToken, (req, res, next) => {
   }
   return getInvoice(req, res, next);
 });
+
+// Razorpay: Create Order & Verify Payment (accessible by both staff and portal customers)
+router.post('/invoices/:id/razorpay-order', verifyStaffOrPortalToken, createRazorpayOrderForInvoice);
+router.post('/invoices/:id/verify-razorpay', verifyStaffOrPortalToken, verifyRazorpayPayment);
 
 // ==========================================
 // Staff Billing Endpoints

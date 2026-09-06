@@ -13,6 +13,8 @@ import {
   getInvoiceDetail,
   markInvoicePaid
 } from '../repository/billing.repository.js';
+import { createOrder, verifySignature } from '../service/razorpay.service.js';
+import { emitInvoiceUpdated } from '../service/socket.service.js';
 
 // Subscription Plans
 export async function listPlans(req, res, next) {
@@ -214,9 +216,164 @@ export async function recordPayment(req, res, next) {
       return next(err);
     }
 
+    emitInvoiceUpdated(req.actor.tenantId, { invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, status: 'paid' });
+
     return res.status(200).json({
       message: 'Payment recorded successfully. Invoice marked as paid.',
       invoice
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Razorpay: Create order for an unpaid invoice
+ * Open to any currency as requested in test mode (e.g. USD, INR, EUR, etc.)
+ */
+export async function createRazorpayOrderForInvoice(req, res, next) {
+  try {
+    const { id } = req.params;
+    const requestedCurrency = req.body.currency || req.query.currency;
+
+    const invoice = await withTenantContext(req.actor, async (client) => {
+      let query = `
+        SELECT i.id, i.tenant_id, i.quotation_id, i.customer_id, i.invoice_number,
+               i.invoice_type, i.status, i.total_amount,
+               c.company_name AS customer_name
+        FROM invoices i
+        JOIN customers c ON c.id = i.customer_id
+        WHERE (i.id::text = $1 OR UPPER(i.invoice_number) = UPPER($1))
+      `;
+      const params = [id];
+      if (req.actor.actorType === 'customer_portal') {
+        query += ` AND i.customer_id = $2`;
+        params.push(req.actor.customerId);
+      }
+      const qRes = await client.query(query, params);
+      return qRes.rows[0] || null;
+    });
+
+    if (!invoice) {
+      const err = new Error('Invoice not found or access denied.');
+      err.status = 404;
+      return next(err);
+    }
+
+    if (invoice.status === 'paid') {
+      return res.status(400).json({ message: 'Invoice is already paid and reconciled.' });
+    }
+
+    // Determine currency: client override -> env RAZORPAY_CURRENCY -> default INR
+    const currency = (
+      requestedCurrency ||
+      process.env.RAZORPAY_CURRENCY ||
+      'INR'
+    ).toUpperCase();
+
+    // Calculate amount in smallest unit (e.g., cents/paise)
+    const rawTotal = Number(invoice.total_amount || 0);
+    const amountInSmallestUnit = Math.round(rawTotal * 100);
+
+    if (amountInSmallestUnit <= 0) {
+      return res.status(400).json({ message: 'Invoice amount must be greater than zero to initiate payment.' });
+    }
+
+    const { order, keyId } = await createOrder({
+      amount: amountInSmallestUnit,
+      currency,
+      receipt: `inv_${invoice.invoice_number || invoice.id.slice(0, 8)}`,
+      notes: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoice_number,
+        customerId: invoice.customer_id,
+        tenantId: invoice.tenant_id,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      keyId,
+      invoice: {
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        total_amount: invoice.total_amount,
+        customer_name: invoice.customer_name,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Razorpay: Verify payment signature and mark invoice paid
+ */
+export async function verifyRazorpayPayment(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        message: 'Missing required Razorpay payment verification parameters.',
+      });
+    }
+
+    const isValid = verifySignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
+
+    if (!isValid) {
+      return res.status(400).json({
+        message: 'Invalid Razorpay payment signature. Payment verification failed.',
+      });
+    }
+
+    // Signature verified! Mark invoice as paid
+    const updatedInvoice = await withTenantContext(req.actor, async (client) => {
+      let query = `
+        UPDATE invoices
+        SET status = 'paid', paid_at = NOW()
+        WHERE (id::text = $1 OR UPPER(invoice_number) = UPPER($1))
+      `;
+      const params = [id];
+      if (req.actor.actorType === 'customer_portal') {
+        query += ` AND customer_id = $2`;
+        params.push(req.actor.customerId);
+      }
+      query += ` RETURNING *;`;
+      const updateRes = await client.query(query, params);
+      return updateRes.rows[0] || null;
+    });
+
+    if (!updatedInvoice) {
+      const err = new Error('Invoice not found during settlement.');
+      err.status = 404;
+      return next(err);
+    }
+
+    // Broadcast real-time invoice payment to company and customer portal
+    emitInvoiceUpdated(req.actor.tenantId || updatedInvoice.tenant_id, {
+      invoiceId: updatedInvoice.id,
+      invoiceNumber: updatedInvoice.invoice_number,
+      status: 'paid',
+      razorpay_payment_id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Payment of ${updatedInvoice.invoice_number} successfully verified and reconciled via Razorpay!`,
+      invoice: updatedInvoice,
+      paymentDetails: {
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+      },
     });
   } catch (err) {
     next(err);

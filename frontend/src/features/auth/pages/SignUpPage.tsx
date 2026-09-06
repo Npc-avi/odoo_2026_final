@@ -27,7 +27,7 @@ export const SignUpPage: React.FC = () => {
   // Form State
   const [companyName, setCompanyName] = useState('');
   const [subdomain, setSubdomain] = useState('');
-  const [defaultCurrency, setDefaultCurrency] = useState('USD');
+  const [defaultCurrency, setDefaultCurrency] = useState('INR');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -270,12 +270,12 @@ export const SignUpPage: React.FC = () => {
                       onChange={(e) => setDefaultCurrency(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-neutral-900/90 border border-neutral-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-[#ff3b30] transition-all appearance-none cursor-pointer"
                     >
+                      <option value="INR">INR (₹)</option>
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>
                       <option value="CAD">CAD ($)</option>
                       <option value="AUD">AUD ($)</option>
-                      <option value="INR">INR (₹)</option>
                     </select>
                   </div>
                 </div>

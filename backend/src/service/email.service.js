@@ -178,9 +178,9 @@ export function sendRfqNotificationEmail({ repEmail, repName, customerName, rfqI
  */
 function formatCurrency(amount) {
   const num = parseFloat(amount || 0);
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD'
+    currency: 'INR'
   }).format(num);
 }
 

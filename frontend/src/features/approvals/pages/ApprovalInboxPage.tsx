@@ -289,7 +289,7 @@ export const ApprovalInboxPage: React.FC = () => {
               Customer Tier: {activeQuote.customer_tier || 'Gold'}
             </span>
             <span className="px-4 py-1.5 rounded-2xl bg-neutral-100 border border-neutral-200 text-neutral-800 font-mono text-xs font-bold">
-              Total Contract: ${Number(activeQuote.total_amount || activeQuote.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              Total Contract: ₹{Number(activeQuote.total_amount || activeQuote.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
@@ -356,7 +356,7 @@ export const ApprovalInboxPage: React.FC = () => {
                               )}
                             </td>
                             <td className="py-3.5 px-5 text-right text-neutral-600">
-                              ${unitPrice.toFixed(2)}
+                              ₹{unitPrice.toFixed(2)}
                             </td>
                             <td className="py-3.5 px-5 text-center">
                               {isConfirmed ? (
@@ -406,7 +406,7 @@ export const ApprovalInboxPage: React.FC = () => {
                               )}
                             </td>
                             <td className="py-3.5 px-5 text-right font-bold text-neutral-900">
-                              ${lineTotal.toFixed(2)}
+                              ₹{lineTotal.toFixed(2)}
                             </td>
                           </tr>
                         );
@@ -812,7 +812,7 @@ export const ApprovalInboxPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-4 px-4 font-bold text-neutral-900">
-                          ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          ₹{Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="py-4 px-4">
                           <span

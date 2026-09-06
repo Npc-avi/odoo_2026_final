@@ -134,7 +134,7 @@ export const QuotationDetailPage: React.FC = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase">
                   CONFIRMED LINE ITEMS
                 </div>
-                <span className="text-xs font-mono text-neutral-500">CURRENCY: USD</span>
+                <span className="text-xs font-mono text-neutral-500">CURRENCY: INR</span>
               </div>
 
               {/* Items List or Empty */}
@@ -144,10 +144,10 @@ export const QuotationDetailPage: React.FC = () => {
                     <div key={item.id} className="py-4 flex items-center justify-between">
                       <div>
                         <div className="font-bold text-neutral-900 uppercase">{item.product_name || 'Product'}</div>
-                        <div className="text-[11px] text-neutral-500">Qty: {item.quantity} &bull; Unit: ${Number(item.unit_price).toFixed(2)}</div>
+                        <div className="text-[11px] text-neutral-500">Qty: {item.quantity} &bull; Unit: ₹{Number(item.unit_price).toFixed(2)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-neutral-900">${Number(item.subtotal || item.total_price).toFixed(2)}</div>
+                        <div className="font-bold text-neutral-900">₹{Number(item.subtotal || item.total_price).toFixed(2)}</div>
                         {item.discount_pct > 0 && (
                           <div className="text-[10px] text-[#ff3b30]">Discount: {item.discount_pct}%</div>
                         )}
@@ -172,7 +172,7 @@ export const QuotationDetailPage: React.FC = () => {
                 <div className="flex justify-between py-2 border-b border-neutral-100">
                   <span className="text-neutral-500">TOTAL DEAL VALUE</span>
                   <span className="font-bold text-neutral-900 font-display text-lg">
-                    ${Number(quotation.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ₹{Number(quotation.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-neutral-100">

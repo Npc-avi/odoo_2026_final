@@ -63,11 +63,11 @@ export const GovernanceProductsTab: React.FC = () => {
 
   // Form Fields for Pricelists
   const [priceRuleList, setPriceRuleList] = useState<any[]>([
-    { tier: 'Bronze', currency: 'USD', price_rule: 'Price, no adjustment' },
-    { tier: 'Gold', currency: 'USD/EUR', price_rule: 'Price minus 10 percent base' },
+    { tier: 'Bronze', currency: 'INR', price_rule: 'Price, no adjustment' },
+    { tier: 'Gold', currency: 'INR', price_rule: 'Price minus 10 percent base' },
   ]);
-  const [newRuleTier, setNewRuleTier] = useState<string>('Silver');
-  const [newRuleCurrency, setNewRuleCurrency] = useState<string>('USD');
+  const [newRuleTier, setNewRuleTier] = useState<string>('Bronze');
+  const [newRuleCurrency, setNewRuleCurrency] = useState<string>('INR');
   const [newRuleText, setNewRuleText] = useState<string>('Price minus 5 percent base');
 
   const loadData = async () => {
@@ -299,7 +299,7 @@ export const GovernanceProductsTab: React.FC = () => {
               {priceLists.length > 0 ? priceLists.length : 4} Tiers
             </div>
             <p className="text-xs font-mono text-neutral-500 mt-1">
-              Platinum, Gold, Silver, Bronze (USD &amp; EUR)
+              Platinum, Gold, Silver, Bronze (INR)
             </p>
           </div>
         </div>
@@ -392,8 +392,8 @@ export const GovernanceProductsTab: React.FC = () => {
                       <td className="app-td font-mono text-xs text-neutral-500">
                         {variantsLabel}
                       </td>
-                      <td className="app-td font-mono font-bold text-neutral-900">
-                        ${Number(p.base_price).toLocaleString()}
+                      <td className="p-3.5 text-right font-bold text-neutral-900">
+                        ₹{Number(p.base_price).toLocaleString('en-IN')}
                       </td>
                       <td className="app-td font-mono text-xs text-neutral-600">
                         {unitLabel}
@@ -509,7 +509,7 @@ export const GovernanceProductsTab: React.FC = () => {
                       </div>
 
                       <div className="flex items-center justify-between gap-3">
-                        <label className="text-neutral-600 font-bold w-32 shrink-0">Price ($)</label>
+                        <label className="text-neutral-600 font-bold w-32 shrink-0">Price (₹)</label>
                         <input
                           type="number"
                           min="0"
@@ -637,8 +637,8 @@ export const GovernanceProductsTab: React.FC = () => {
                             <tr key={i} className="hover:bg-neutral-50/70">
                               <td className="p-2.5 font-bold text-neutral-900">{v.attribute_name}</td>
                               <td className="p-2.5 text-neutral-700">{v.attribute_value}</td>
-                              <td className="p-2.5 text-right text-emerald-600 font-bold">
-                                {v.extra_price > 0 ? `+$${v.extra_price}` : '$0'}
+                              <td className="p-2.5 text-right font-bold text-neutral-900">
+                                {v.extra_price > 0 ? `+₹${v.extra_price}` : '₹0'}
                               </td>
                             </tr>
                           ))
@@ -665,7 +665,7 @@ export const GovernanceProductsTab: React.FC = () => {
                     />
                     <input
                       type="number"
-                      placeholder="Extra $"
+                      placeholder="Extra ₹"
                       value={newVarExtra}
                       onChange={(e) => setNewVarExtra(Number(e.target.value))}
                       className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs w-20 text-right focus:border-[#ff3b30]"
@@ -730,9 +730,7 @@ export const GovernanceProductsTab: React.FC = () => {
                       onChange={(e) => setNewRuleCurrency(e.target.value)}
                       className="px-2.5 py-1.5 rounded-xl bg-white border border-neutral-200 text-neutral-900 text-xs"
                     >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="USD/EUR">USD/EUR</option>
+                      <option value="INR">INR</option>
                     </select>
                     <input
                       type="text"

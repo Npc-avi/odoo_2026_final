@@ -81,7 +81,7 @@ export const RfqListPage: React.FC = () => {
                       {rfq.company_name || 'Enterprise Buyer'}
                     </td>
                     <td className="px-6 py-4 font-bold text-neutral-900">
-                      ${Number(rfq.estimated_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹{Number(rfq.estimated_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={rfq.status || 'pending'} />

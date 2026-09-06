@@ -544,7 +544,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
                           {/* Unit List Price */}
                           <td className="py-4 px-4 text-right font-mono text-neutral-600 align-middle">
-                            ${unitList.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{unitList.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
                           {/* Quantity Controls */}
@@ -613,12 +613,12 @@ export const CustomerQuoteDetailPage: React.FC = () => {
 
                           {/* Calculated Unit Price */}
                           <td className="py-4 px-4 text-right font-mono text-neutral-700 align-middle">
-                            ${calculatedUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{calculatedUnit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
                           {/* Line Total */}
                           <td className="py-4 px-6 text-right font-bold text-neutral-900 text-sm align-middle">
-                            ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
 
                           {/* Remove Button */}
@@ -654,7 +654,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                     FINAL TOTAL CONTRACT
                   </span>
                   <span className="font-display font-black text-xl text-neutral-900">
-                    ${Number(quotation.totalAmount || 0).toLocaleString(undefined, {
+                    ₹{Number(quotation.totalAmount || 0).toLocaleString('en-IN', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -701,7 +701,7 @@ export const CustomerQuoteDetailPage: React.FC = () => {
                       <option value="">-- Choose from Catalog --</option>
                       {catalog.map((prod) => (
                         <option key={prod.id} value={prod.id}>
-                          {prod.name} ({prod.sku}) — ${Number(prod.basePrice).toFixed(2)} [{prod.itemType || 'item'}]
+                          {prod.name} ({prod.sku}) — ₹{Number(prod.basePrice).toFixed(2)} [{prod.itemType || 'item'}]
                         </option>
                       ))}
                     </select>

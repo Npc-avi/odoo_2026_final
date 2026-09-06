@@ -155,16 +155,16 @@ export function exportInvoiceQuotationPDF({ invoice, quotation }: ExportData) {
       desc,
       type,
       qty.toString(),
-      `$${unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `₹${unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       discount,
-      `$${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      `₹${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     ];
   });
 
   autoTable(doc, {
     startY: y,
     head: [['#', 'Description & Product', 'Type', 'Qty', 'Unit Price', 'Discount', 'Total']],
-    body: tableRows.length > 0 ? tableRows : [['1', 'General Services / Product Delivery', 'Standard', '1', `$${Number(invoice?.total_amount || 0).toFixed(2)}`, '0%', `$${Number(invoice?.total_amount || 0).toFixed(2)}`]],
+    body: tableRows.length > 0 ? tableRows : [['1', 'General Services / Product Delivery', 'Standard', '1', `₹${Number(invoice?.total_amount || 0).toFixed(2)}`, '0%', `₹${Number(invoice?.total_amount || 0).toFixed(2)}`]],
     theme: 'striped',
     headStyles: {
       fillColor: [15, 23, 42],
@@ -207,12 +207,12 @@ export function exportInvoiceQuotationPDF({ invoice, quotation }: ExportData) {
   doc.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
   doc.text('Subtotal:', 125, totalsY + 8);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text(`$${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, totalsY + 8, { align: 'right' });
+  doc.text(`₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 190, totalsY + 8, { align: 'right' });
 
   doc.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
   doc.text('Tax / VAT (8%):', 125, totalsY + 16);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text(`$${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, totalsY + 16, { align: 'right' });
+  doc.text(`₹${tax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 190, totalsY + 16, { align: 'right' });
 
   doc.setDrawColor(203, 213, 225);
   doc.line(125, totalsY + 20, 191, totalsY + 20);
@@ -221,7 +221,7 @@ export function exportInvoiceQuotationPDF({ invoice, quotation }: ExportData) {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.text('Grand Total:', 125, totalsY + 28);
-  doc.text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 190, totalsY + 28, { align: 'right' });
+  doc.text(`₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 190, totalsY + 28, { align: 'right' });
 
   // Fulfillment Policy / Reconciled Banner Footer
   const footerY = Math.min(totalsY + 45, 270);
@@ -311,10 +311,10 @@ export async function exportInvoiceQuotationDOCX({ invoice, quotation }: ExportD
           children: [new Paragraph({ text: String(qty), alignment: AlignmentType.CENTER })],
         }),
         new TableCell({
-          children: [new Paragraph({ text: `$${unitPrice.toFixed(2)}`, alignment: AlignmentType.RIGHT })],
+          children: [new Paragraph({ text: `₹${unitPrice.toFixed(2)}`, alignment: AlignmentType.RIGHT })],
         }),
         new TableCell({
-          children: [new Paragraph({ children: [new TextRun({ text: `$${lineTotal.toFixed(2)}`, bold: true })], alignment: AlignmentType.RIGHT })],
+          children: [new Paragraph({ children: [new TextRun({ text: `₹${lineTotal.toFixed(2)}`, bold: true })], alignment: AlignmentType.RIGHT })],
         }),
       ],
     });
@@ -382,10 +382,10 @@ export async function exportInvoiceQuotationDOCX({ invoice, quotation }: ExportD
             spacing: { before: 300 },
             alignment: AlignmentType.RIGHT,
             children: [
-              new TextRun({ text: `Subtotal: $${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n` }),
-              new TextRun({ text: `Estimated Tax (8%): $${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n` }),
+              new TextRun({ text: `Subtotal: ₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n` }),
+              new TextRun({ text: `Estimated Tax (8%): ₹${tax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n` }),
               new TextRun({
-                text: `Grand Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                text: `Grand Total: ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 bold: true,
                 size: 28,
                 color: 'FF3B30',
@@ -490,16 +490,16 @@ export function exportQuotationPDF(quotation: any) {
       String(index + 1),
       it.product_name || it.productName || it.description || 'Product Item',
       String(qty),
-      `$${unitPrice.toFixed(2)}`,
+      `₹${unitPrice.toFixed(2)}`,
       disc > 0 ? `${disc}%` : '0%',
-      `$${lineTotal.toFixed(2)}`,
+      `₹${lineTotal.toFixed(2)}`,
     ];
   });
 
   autoTable(doc, {
     startY: y + 16,
     head: [['#', 'Item / Description', 'Qty', 'Unit Price', 'Discount', 'Total']],
-    body: tableRows.length > 0 ? tableRows : [['-', 'No items added', '-', '-', '-', '$0.00']],
+    body: tableRows.length > 0 ? tableRows : [['-', 'No items added', '-', '-', '-', '₹0.00']],
     theme: 'grid',
     headStyles: {
       fillColor: [15, 23, 42],
@@ -531,20 +531,20 @@ export function exportQuotationPDF(quotation: any) {
   doc.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
   doc.text('Subtotal:', 140, finalY);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text(`$${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 195, finalY, { align: 'right' });
+  doc.text(`₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 195, finalY, { align: 'right' });
 
   if (tax > 0) {
     doc.setTextColor(neutralGray[0], neutralGray[1], neutralGray[2]);
     doc.text('Tax:', 140, finalY + 6);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`$${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 195, finalY + 6, { align: 'right' });
+    doc.text(`₹${tax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 195, finalY + 6, { align: 'right' });
   }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.text('Grand Total:', 140, finalY + 14);
-  doc.text(`$${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 195, finalY + 14, { align: 'right' });
+  doc.text(`₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 195, finalY + 14, { align: 'right' });
 
   // Terms & Signature
   doc.setFontSize(8);
@@ -586,9 +586,9 @@ export async function exportQuotationDOCX(quotation: any) {
         new TableCell({ children: [new Paragraph({ text: String(index + 1), alignment: AlignmentType.CENTER })] }),
         new TableCell({ children: [new Paragraph(it.product_name || it.productName || it.description || 'Item')] }),
         new TableCell({ children: [new Paragraph({ text: String(qty), alignment: AlignmentType.CENTER })] }),
-        new TableCell({ children: [new Paragraph({ text: `$${unitPrice.toFixed(2)}`, alignment: AlignmentType.RIGHT })] }),
+        new TableCell({ children: [new Paragraph({ text: `₹${unitPrice.toFixed(2)}`, alignment: AlignmentType.RIGHT })] }),
         new TableCell({ children: [new Paragraph({ text: disc > 0 ? `${disc}%` : '0%', alignment: AlignmentType.CENTER })] }),
-        new TableCell({ children: [new Paragraph({ text: `$${lineTotal.toFixed(2)}`, alignment: AlignmentType.RIGHT })] }),
+        new TableCell({ children: [new Paragraph({ text: `₹${lineTotal.toFixed(2)}`, alignment: AlignmentType.RIGHT })] }),
       ],
     });
   });
@@ -620,10 +620,10 @@ export async function exportQuotationDOCX(quotation: any) {
             spacing: { before: 300 },
             alignment: AlignmentType.RIGHT,
             children: [
-              new TextRun({ text: `Subtotal: $${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n` }),
-              new TextRun({ text: `Tax: $${tax.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n` }),
+              new TextRun({ text: `Subtotal: ₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n` }),
+              new TextRun({ text: `Tax: ₹${tax.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n` }),
               new TextRun({
-                text: `Grand Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                text: `Grand Total: ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                 bold: true,
                 size: 28,
                 color: 'FF3B30',

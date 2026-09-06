@@ -440,7 +440,7 @@ export const GovernanceStaffTab: React.FC = () => {
                         )}
                       </td>
                       <td className="app-td font-mono text-neutral-900 font-bold">
-                        ${Number(cust.credit_limit || 0).toLocaleString()}
+                        ₹{Number(cust.credit_limit || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="app-td text-center">
                         <span
@@ -650,7 +650,7 @@ export const GovernanceStaffTab: React.FC = () => {
 
                     <div className="space-y-1.5">
                       <label className="app-label">
-                        Credit Limit ($)
+                        Credit Limit (₹)
                       </label>
                       <input
                         type="number"

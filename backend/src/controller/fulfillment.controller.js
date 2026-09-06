@@ -1,5 +1,5 @@
 import { withTenantContext } from '../middleware/tenant-context.middleware.js';
-import { emitQuotationUpdated } from '../service/socket.service.js';
+import { emitQuotationUpdated, emitInvoiceCreated } from '../service/socket.service.js';
 import {
   getWarehouses,
   createWarehouse,
@@ -62,6 +62,18 @@ export async function suggestSplit(req, res, next) {
   try {
     const { id } = req.params; // quotation_id
     const plan = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is in fulfillment and cannot be opened.');
+        err.status = 400;
+        throw err;
+      }
       return getSuggestedFulfillmentSplit(client, id);
     });
     return res.status(200).json({ fulfillmentPlan: plan });
@@ -79,6 +91,19 @@ export async function confirmSplit(req, res, next) {
     const { splits, isManualOverride } = req.body;
 
     const shipments = await withTenantContext(req.actor, async (client) => {
+      const qCheck = await client.query('SELECT status FROM quotations WHERE id = $1', [id]);
+      if (qCheck.rows.length === 0) {
+        const err = new Error('Quotation not found.');
+        err.status = 404;
+        throw err;
+      }
+      const status = qCheck.rows[0].status;
+      if (status === 'in_fulfillment' || status === 'fulfillment') {
+        const err = new Error('Quotation is already in fulfillment.');
+        err.status = 400;
+        throw err;
+      }
+
       return commitFulfillmentSplit(client, req.actor.tenantId, id, {
         splits,
         isManualOverride: Boolean(isManualOverride)
@@ -86,9 +111,10 @@ export async function confirmSplit(req, res, next) {
     });
 
     emitQuotationUpdated(req.actor.tenantId, id, { status: 'in_fulfillment' });
+    emitInvoiceCreated(req.actor.tenantId, { quotationId: id, status: 'issued' });
 
     return res.status(201).json({
-      message: 'Fulfillment plan confirmed and quotation pushed to fulfillment.',
+      message: 'Fulfillment plan confirmed and quotation pushed to fulfillment. Unpaid invoice generated.',
       shipments
     });
   } catch (err) {

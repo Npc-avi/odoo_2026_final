@@ -16,9 +16,11 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useSocket } from '@/context/socket.context';
 
 export const CustomerInvoicesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { socket } = useSocket();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
@@ -39,6 +41,21 @@ export const CustomerInvoicesPage: React.FC = () => {
   useEffect(() => {
     loadInvoices();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleInvoiceUpdate = () => {
+      loadInvoices();
+    };
+    socket.on('invoice:created', handleInvoiceUpdate);
+    socket.on('invoice:updated', handleInvoiceUpdate);
+    socket.on('quotation:updated', handleInvoiceUpdate);
+    return () => {
+      socket.off('invoice:created', handleInvoiceUpdate);
+      socket.off('invoice:updated', handleInvoiceUpdate);
+      socket.off('quotation:updated', handleInvoiceUpdate);
+    };
+  }, [socket]);
 
   const totalBilled = invoices.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
   const totalPaid = invoices
@@ -93,7 +110,7 @@ export const CustomerInvoicesPage: React.FC = () => {
             <DollarSign className="w-4 h-4 text-cyan-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-display font-black text-neutral-900">
-            ${totalBilled.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{totalBilled.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] font-mono text-neutral-500 mt-2">
             Cumulative reconciled orders
@@ -106,7 +123,7 @@ export const CustomerInvoicesPage: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl sm:text-3xl font-display font-black text-emerald-600">
-            ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] font-mono text-emerald-600/90 mt-2">
             Fully paid and processed
@@ -119,7 +136,7 @@ export const CustomerInvoicesPage: React.FC = () => {
             <Clock className="w-4 h-4 text-amber-600" />
           </div>
           <div className={`text-2xl sm:text-3xl font-display font-black ${outstandingBalance > 0 ? 'text-amber-600' : 'text-neutral-900'}`}>
-            ${outstandingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{outstandingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] font-mono text-neutral-500 mt-2">
             {outstandingBalance > 0 ? 'Pending payment settlement' : 'Account current & clear'}
@@ -233,7 +250,7 @@ export const CustomerInvoicesPage: React.FC = () => {
                         {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'Immediate'}
                       </td>
                       <td className="app-td text-right font-bold text-neutral-900 font-mono text-sm">
-                        ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="app-td text-center">
                         <span
@@ -277,6 +294,16 @@ export const CustomerInvoicesPage: React.FC = () => {
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
+                          {!isPaid && (
+                            <button
+                              onClick={() => navigate(`/portal/invoices/${inv.id}`)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#ff3b30] hover:bg-red-700 text-white text-[11px] font-mono font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer ml-1"
+                              title="Pay this invoice now"
+                            >
+                              <CreditCard className="w-3 h-3" />
+                              <span>PAY NOW</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => navigate(`/portal/invoices/${inv.id}`)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-mono font-bold transition-colors ml-1 cursor-pointer"

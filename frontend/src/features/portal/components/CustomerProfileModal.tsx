@@ -114,7 +114,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({ isOp
               <div>
                 <span className="text-[10px] text-neutral-400 uppercase">Recurring Rate</span>
                 <p className="font-bold text-neutral-900 text-sm mt-0.5">
-                  ${Number(user.subscription?.unitRecurringPrice || (tier === 'Platinum' ? 499 : tier === 'Gold' ? 299 : tier === 'Silver' ? 149 : 49)).toFixed(2)}{' '}
+                  ₹{Number(user.subscription?.unitRecurringPrice || (tier === 'Platinum' ? 499 : tier === 'Gold' ? 299 : tier === 'Silver' ? 149 : 49)).toFixed(2)}{' '}
                   <span className="text-xs font-normal text-neutral-500">/{user.subscription?.cadence || 'mo'}</span>
                 </p>
               </div>
@@ -161,7 +161,7 @@ export const CustomerProfileModal: React.FC<CustomerProfileModalProps> = ({ isOp
                 <span className="text-[10px] text-neutral-400 uppercase">Approved Credit Line</span>
                 <p className="font-bold text-neutral-900 flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-neutral-400" />
-                  ${Number(user.creditLimit || 10000).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ₹{Number(user.creditLimit || 10000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </div>

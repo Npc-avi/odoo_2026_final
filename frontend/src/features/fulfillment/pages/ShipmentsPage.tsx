@@ -18,6 +18,7 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSocket } from '@/context/socket.context';
@@ -127,6 +128,11 @@ export const ShipmentsPage: React.FC = () => {
   };
 
   const handleOpenDetail = (quotationId: string) => {
+    const targetQuote = confirmedQuotes.find((q) => q.id === quotationId);
+    if (targetQuote && (targetQuote.status === 'in_fulfillment' || targetQuote.status === 'fulfillment')) {
+      toast.info('Orders with status in fulfillment cannot be opened.');
+      return;
+    }
     setSelectedQuoteId(quotationId);
     setSplitMode('suggested');
     loadSplitDetail(quotationId);
@@ -442,7 +448,7 @@ export const ShipmentsPage: React.FC = () => {
                               </span>
                             </td>
                             <td className="py-4 px-6 text-right font-bold text-neutral-900">
-                              ${Number(inv.warehouse_cost ?? inv.unit_cost ?? 0).toFixed(2)}
+                              ₹{Number(inv.warehouse_cost ?? inv.unit_cost ?? 0).toFixed(2)}
                             </td>
                           </tr>
                         ))
@@ -479,14 +485,34 @@ export const ShipmentsPage: React.FC = () => {
                         {confirmedQuotes.length > 0 ? (
                           confirmedQuotes.map((q) => {
                             const meta = getOrderFulfillmentMetadata(q);
+                            const isLocked = meta.isAlreadyFulfilling;
                             return (
                               <tr
                                 key={q.id}
-                                onClick={() => handleOpenDetail(q.id)}
-                                className="hover:bg-neutral-50/80 transition-colors group cursor-pointer"
+                                onClick={() => {
+                                  if (isLocked) {
+                                    toast.info('Orders with status in fulfillment cannot be opened.');
+                                    return;
+                                  }
+                                  handleOpenDetail(q.id);
+                                }}
+                                className={`transition-colors group ${
+                                  isLocked
+                                    ? 'bg-neutral-50/60 opacity-70 cursor-not-allowed'
+                                    : 'hover:bg-neutral-50/80 cursor-pointer'
+                                }`}
+                                title={isLocked ? 'In Fulfillment — Order cannot be opened' : 'Click to open warehouse split detail'}
                               >
-                                <td className="py-4 px-6 font-bold text-[#ff3b30] group-hover:text-red-700 transition-colors">
-                                  {q.quotation_code || q.id.slice(0, 8).toUpperCase()}
+                                <td className="py-4 px-6 font-bold flex items-center gap-2">
+                                  <span className={isLocked ? 'text-neutral-500' : 'text-[#ff3b30] group-hover:text-red-700 transition-colors'}>
+                                    {q.quotation_code || q.id.slice(0, 8).toUpperCase()}
+                                  </span>
+                                  {isLocked && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-neutral-200 text-neutral-600 border border-neutral-300">
+                                      <Lock className="w-3 h-3 text-neutral-500" />
+                                      LOCKED
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="py-4 px-6 text-neutral-900 font-semibold">
                                   {q.customer_company_name || q.company_name || 'Client Organization'}
@@ -600,13 +626,13 @@ export const ShipmentsPage: React.FC = () => {
                                 {item.quantity} units
                               </td>
                               <td className="py-3.5 px-6 text-right text-amber-800 font-semibold">
-                                ${Number(item.unitCost || 0).toFixed(2)}
+                                ₹{Number(item.unitCost || 0).toFixed(2)}
                               </td>
                               <td className="py-3.5 px-6 text-right text-neutral-600">
-                                ${Number(item.unitPrice || 0).toFixed(2)}
+                                ₹{Number(item.unitPrice || 0).toFixed(2)}
                               </td>
                               <td className="py-3.5 px-6 text-right font-bold text-neutral-900">
-                                ${Number(item.lineTotal || 0).toFixed(2)}
+                                ₹{Number(item.lineTotal || 0).toFixed(2)}
                               </td>
                             </tr>
                           ))
@@ -661,14 +687,14 @@ export const ShipmentsPage: React.FC = () => {
                                     <div className="text-[10px] text-neutral-500 mt-0.5 space-y-0.5">
                                       {(whSplit.items || []).map((i: any, iIdx: number) => (
                                         <div key={iIdx}>
-                                          {i.productName}: <strong>{i.fulfilledQty} units</strong> (@ ${Number(i.unitCost).toFixed(2)}/ea)
+                                          {i.productName}: <strong>{i.fulfilledQty} units</strong> (@ ₹{Number(i.unitCost).toFixed(2)}/ea)
                                         </div>
                                       ))}
                                     </div>
                                   </td>
                                   <td className="py-4 px-6 text-neutral-600">1</td>
                                   <td className="py-4 px-6 text-right font-bold text-emerald-700 text-sm">
-                                    ${Number(whSplit.warehouseCost).toFixed(2)}
+                                    ₹{Number(whSplit.warehouseCost).toFixed(2)}
                                   </td>
                                 </tr>
                               );
@@ -763,13 +789,13 @@ export const ShipmentsPage: React.FC = () => {
                                       }`}
                                     />
                                     <span className="text-neutral-500 text-[11px]">
-                                      units of {reqItem?.productName || 'Product'} (@ ${unitCost.toFixed(2)}/ea)
+                                      units of {reqItem?.productName || 'Product'} (@ ₹{unitCost.toFixed(2)}/ea)
                                     </span>
                                   </div>
                                 </td>
                                 <td className="py-4 px-6 text-neutral-600">1</td>
                                 <td className="py-4 px-6 text-right font-bold text-emerald-700">
-                                  ${lineCost.toFixed(2)}
+                                  ₹{lineCost.toFixed(2)}
                                 </td>
                               </tr>
                             );

@@ -260,7 +260,7 @@ export const GovernanceReportsTab: React.FC = () => {
         head: [['Quotes Created', 'Confirmed Revenue', 'Avg Approval Turnaround', 'Average Margin %']],
         body: [[
           String(created),
-          `$${rev}`,
+          `₹${rev}`,
           `${hours} hrs`,
           margin
         ]],
@@ -281,7 +281,7 @@ export const GovernanceReportsTab: React.FC = () => {
           r.rep_name || 'Unassigned',
           String(r.total_quotes || 0),
           String(r.won_quotes || 0),
-          `$${Number(r.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          `₹${Number(r.total_revenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
           `${Number(r.avg_margin_pct || 0).toFixed(1)}%`,
         ]);
 
@@ -319,7 +319,7 @@ export const GovernanceReportsTab: React.FC = () => {
           row.customer_name || '-',
           row.rep_name || 'N/A',
           (row.status || '').toUpperCase(),
-          `$${Number(row.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          `₹${Number(row.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
           `${row.blended_risk_score || 0}%`,
           new Date(row.created_at).toLocaleDateString(),
         ]);
@@ -364,14 +364,14 @@ export const GovernanceReportsTab: React.FC = () => {
       // Table 1: Overview
       html += '<h3>1. Executive Overview Metrics</h3>';
       html += '<table><tr><th>Quotes Created</th><th>Confirmed Revenue</th><th>Avg Approval Turnaround</th><th>Avg Margin %</th></tr>';
-      html += `<tr><td class="center">${overview.quotes_created || 0}</td><td class="num">$${Number(overview.total_confirmed_revenue || 0).toFixed(2)}</td><td class="center">${overview.avg_approval_time_hours || 0} hrs</td><td class="center">${overview.avg_margin_pct ? Number(overview.avg_margin_pct).toFixed(1) + '%' : 'N/A'}</td></tr></table><br/>`;
+      html += `<tr><td class="center">${overview.quotes_created || 0}</td><td class="num">₹${Number(overview.total_confirmed_revenue || 0).toFixed(2)}</td><td class="center">${overview.avg_approval_time_hours || 0} hrs</td><td class="center">${overview.avg_margin_pct ? Number(overview.avg_margin_pct).toFixed(1) + '%' : 'N/A'}</td></tr></table><br/>`;
 
       // Table 2: Rep Performance
       if (repPerformance.length > 0) {
         html += '<h3>2. Sales Representative Performance</h3>';
         html += '<table><tr><th>Representative</th><th>Total Quotes</th><th>Won Quotes</th><th>Total Revenue</th><th>Avg Margin %</th></tr>';
         repPerformance.forEach((r: any) => {
-          html += `<tr><td>${r.rep_name || 'Unassigned'}</td><td class="center">${r.total_quotes || 0}</td><td class="center">${r.won_quotes || 0}</td><td class="num">$${Number(r.total_revenue || 0).toFixed(2)}</td><td class="center">${Number(r.avg_margin_pct || 0).toFixed(1)}%</td></tr>`;
+          html += `<tr><td>${r.rep_name || 'Unassigned'}</td><td class="center">${r.total_quotes || 0}</td><td class="center">${r.won_quotes || 0}</td><td class="num">₹${Number(r.total_revenue || 0).toFixed(2)}</td><td class="center">${Number(r.avg_margin_pct || 0).toFixed(1)}%</td></tr>`;
         });
         html += '</table><br/>';
       }
@@ -381,7 +381,7 @@ export const GovernanceReportsTab: React.FC = () => {
         html += '<h3>3. Quotation Audit Ledger</h3>';
         html += '<table><tr><th>Quote Code</th><th>Customer</th><th>Representative</th><th>Status</th><th>Total Amount</th><th>Risk Score</th><th>Created Date</th></tr>';
         ledger.forEach((row: any) => {
-          html += `<tr><td>${row.quotation_code || '-'}</td><td>${row.customer_name || '-'}</td><td>${row.rep_name || 'N/A'}</td><td>${(row.status || '').toUpperCase()}</td><td class="num">$${Number(row.total_amount || 0).toFixed(2)}</td><td class="center">${row.blended_risk_score || 0}%</td><td class="center">${new Date(row.created_at).toLocaleDateString()}</td></tr>`;
+          html += `<tr><td>${row.quotation_code || '-'}</td><td>${row.customer_name || '-'}</td><td>${row.rep_name || 'N/A'}</td><td>${(row.status || '').toUpperCase()}</td><td class="num">₹${Number(row.total_amount || 0).toFixed(2)}</td><td class="center">${row.blended_risk_score || 0}%</td><td class="center">${new Date(row.created_at).toLocaleDateString()}</td></tr>`;
         });
         html += '</table><br/>';
       }
@@ -640,7 +640,7 @@ export const GovernanceReportsTab: React.FC = () => {
             <div className="pt-4 mt-2 border-t border-neutral-200 flex items-center justify-between text-xs font-mono text-neutral-600">
               <span>Pipeline Volume:</span>
               <strong className="text-neutral-900 font-bold">
-                ${Number(overview.total_confirmed_revenue || overview.total_pipeline_value || 0).toLocaleString()}
+                ₹{Number(overview.total_confirmed_revenue || overview.total_pipeline_value || 0).toLocaleString('en-IN')}
               </strong>
             </div>
           </div>
@@ -712,7 +712,7 @@ export const GovernanceReportsTab: React.FC = () => {
                           {q.blended_risk_score ?? 0}
                         </td>
                         <td className="app-td app-td-right font-mono font-bold text-neutral-900">
-                          ${Number(q.total_amount || 0).toLocaleString()}
+                          ₹{Number(q.total_amount || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
                     ))
@@ -739,7 +739,7 @@ export const GovernanceReportsTab: React.FC = () => {
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
                     <div>
                       <span className="text-neutral-500">Won Revenue:</span>
-                      <div className="font-bold text-emerald-700">${Number(rep.total_revenue || 0).toLocaleString()}</div>
+                      <div className="font-bold text-emerald-700">₹{Number(rep.total_revenue || 0).toLocaleString('en-IN')}</div>
                     </div>
                     <div>
                       <span className="text-neutral-500">Avg Discount:</span>
@@ -848,7 +848,7 @@ export const GovernanceReportsTab: React.FC = () => {
                   <div className="flex justify-between items-center text-neutral-600">
                     <span>Confirmed Revenue:</span>
                     <strong className="text-emerald-700 font-bold">
-                      ${Number(overview.total_confirmed_revenue || 0).toLocaleString()}
+                      ₹{Number(overview.total_confirmed_revenue || 0).toLocaleString('en-IN')}
                     </strong>
                   </div>
                 </div>

@@ -653,7 +653,7 @@ export const GovernanceSubscriptionTab: React.FC = () => {
                         <td className="p-3 font-medium text-neutral-900">{item.product_name || item.name || 'Equipment'}</td>
                         <td className="p-3 text-center text-neutral-600">{item.quantity}</td>
                         <td className="p-3 text-right font-bold text-neutral-900">
-                          ${Number(item.line_total || item.total_amount || 0).toLocaleString()}
+                          ₹{Number(item.line_total || item.total_amount || 0).toLocaleString('en-IN')}
                         </td>
                       </tr>
                     ))
@@ -661,7 +661,7 @@ export const GovernanceSubscriptionTab: React.FC = () => {
                     <tr>
                       <td className="p-3 font-medium text-neutral-900">Laptop Pro 14</td>
                       <td className="p-3 text-center text-neutral-600">2</td>
-                      <td className="p-3 text-right font-bold text-neutral-900">$2,280</td>
+                      <td className="p-3 text-right font-bold text-neutral-900">₹2,280</td>
                     </tr>
                   )}
                 </tbody>
@@ -696,7 +696,7 @@ export const GovernanceSubscriptionTab: React.FC = () => {
                       {selectedSubDetail.next_billing_date ? new Date(selectedSubDetail.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Sep 15'}
                     </td>
                     <td className="p-3 text-right font-bold text-emerald-700">
-                      ${Number(selectedSubDetail.unit_recurring_price || 46).toFixed(2)}/mo
+                      ₹{Number(selectedSubDetail.unit_recurring_price || 46).toFixed(2)}/mo
                     </td>
                   </tr>
                 </tbody>

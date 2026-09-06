@@ -44,7 +44,7 @@ export const HYBRID_BILLING_ASCII = `    +--------------------------------------
     |      HYBRID REVENUE CONCILIATION CORE     |
     +-------------------------------------------+
     | ONE-TIME HARDWARE        RECURRING SAAS   |
-    | $14,500.00 [PAID]        $2,400.00/MO     |
+    | ₹14,500.00 [PAID]        ₹2,400.00/MO     |
     +-------------------------------------------+
            |                         |
     [ NET-30 INVOICE ]       [ BILLING SCHEDULE ]

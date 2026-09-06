@@ -143,3 +143,27 @@ export function emitApprovalUpdated(tenantId, quoteId, data = {}) {
   }
   io.emit('approval:updated', payload);
 }
+
+/**
+ * Emit invoice created update (when an order is moved to fulfillment)
+ */
+export function emitInvoiceCreated(tenantId, data = {}) {
+  if (!io) return;
+  const payload = { ...data, timestamp: new Date().toISOString() };
+  if (tenantId) {
+    io.to(`tenant:${tenantId}`).emit('invoice:created', payload);
+  }
+  io.emit('invoice:created', payload);
+}
+
+/**
+ * Emit invoice status update (e.g. marked as paid via Razorpay)
+ */
+export function emitInvoiceUpdated(tenantId, data = {}) {
+  if (!io) return;
+  const payload = { ...data, timestamp: new Date().toISOString() };
+  if (tenantId) {
+    io.to(`tenant:${tenantId}`).emit('invoice:updated', payload);
+  }
+  io.emit('invoice:updated', payload);
+}

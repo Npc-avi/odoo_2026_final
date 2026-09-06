@@ -59,7 +59,7 @@ export const Dashboard: React.FC = () => {
     {
       index: '001',
       title: 'ACTIVE PIPELINE VALUE',
-      value: `$${pipelineValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}`,
+      value: `₹${pipelineValue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}`,
       tagline: `${activeQuotes.length} active opportunities across tenant accounts`,
       icon: DollarSign,
       status: 'HEALTHY // LIVE REVENUE',
@@ -217,7 +217,7 @@ export const Dashboard: React.FC = () => {
                     </td>
                     <td className="py-4 px-4 text-neutral-500">{q.assigned_rep_name || 'Rachel Rep'}</td>
                     <td className="py-4 px-4 font-bold text-neutral-900">
-                      ${Number(q.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹{Number(q.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-4 px-4 text-emerald-700 font-bold">
                       {Number(q.total_margin_pct || 0).toFixed(1)}%

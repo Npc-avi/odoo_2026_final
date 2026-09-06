@@ -78,7 +78,7 @@ export const CustomerRfqPage: React.FC = () => {
 
           <div>
             <label className="block text-[10px] font-mono font-bold tracking-widest text-neutral-600 uppercase mb-2">
-              TARGET BUDGET CEILING (USD)
+              TARGET BUDGET CEILING (INR)
             </label>
             <input
               type="number"
