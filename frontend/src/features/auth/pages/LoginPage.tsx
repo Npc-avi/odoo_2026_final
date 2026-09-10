@@ -6,18 +6,13 @@ import {
   Shield,
   Building2,
   Users,
-  Key,
   Mail,
   ArrowLeft,
-  ArrowRight,
   Eye,
   EyeOff,
   Sparkles,
   CheckCircle2,
   AlertTriangle,
-  Lock,
-  Activity,
-  Cpu,
   Zap,
   Briefcase,
   Crown
@@ -28,13 +23,15 @@ export const LoginPage: React.FC = () => {
   const { loginStaff, loginPortal, loading } = useAuth();
 
   // Role identity: 'member' (Company Staff) vs 'customer' (Client Company)
-  const [loginType, setLoginType] = useState<'member' | 'customer'>('member');
-  
+  const [loginType, setLoginType] = useState<'member' | 'customer'>(() => {
+    return window.location.pathname.includes('/portal') ? 'customer' : 'member';
+  });
+
   // Credentials
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Customer Magic Link option
   const [useMagicLink, setUseMagicLink] = useState(false);
 
@@ -51,10 +48,7 @@ export const LoginPage: React.FC = () => {
       roleLabel: 'Admin',
       name: 'Alice Admin',
       email: 'admin@acme.com',
-      badgeText: 'FULL ACCESS',
-      badgeClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-      borderClass: 'border-neutral-800 hover:border-rose-500/60 bg-neutral-900/60 hover:bg-rose-500/[0.06]',
-      iconColor: 'text-rose-400',
+      badgeText: 'Admin',
       icon: Crown,
     },
     {
@@ -63,10 +57,7 @@ export const LoginPage: React.FC = () => {
       roleLabel: 'Manager',
       name: 'Mark Manager',
       email: 'manager@acme.com',
-      badgeText: 'APPROVALS',
-      badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      borderClass: 'border-neutral-800 hover:border-amber-500/60 bg-neutral-900/60 hover:bg-amber-500/[0.06]',
-      iconColor: 'text-amber-400',
+      badgeText: 'Manager',
       icon: Briefcase,
     },
     {
@@ -75,10 +66,7 @@ export const LoginPage: React.FC = () => {
       roleLabel: 'Sales Rep',
       name: 'Rachel Rep',
       email: 'rep@acme.com',
-      badgeText: 'QUOTES & RFQ',
-      badgeClass: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-      borderClass: 'border-neutral-800 hover:border-blue-500/60 bg-neutral-900/60 hover:bg-blue-500/[0.06]',
-      iconColor: 'text-blue-400',
+      badgeText: 'Sales',
       icon: Users,
     },
     {
@@ -87,10 +75,7 @@ export const LoginPage: React.FC = () => {
       roleLabel: 'Customer',
       name: 'Bruce Wayne',
       email: 'bruce@wayne.com',
-      badgeText: 'GOLD TIER',
-      badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-      borderClass: 'border-neutral-800 hover:border-emerald-500/60 bg-neutral-900/60 hover:bg-emerald-500/[0.06]',
-      iconColor: 'text-emerald-400',
+      badgeText: 'Gold',
       icon: Building2,
     },
   ];
@@ -124,7 +109,6 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -152,143 +136,27 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col lg:flex-row overflow-hidden relative selection:bg-[#ff3b30] selection:text-white">
-      {/* Background Technical Grid with dots & '+' intersections (Exact from Landing Page Workflow) */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div
-          className="w-full h-full opacity-45"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 1px 1px, rgba(255,255,255,0.2) 1.5px, transparent 0),
-              linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px)
-            `,
-            backgroundSize: '64px 64px, 64px 64px, 64px 64px',
-          }}
-        />
-        <div className="absolute inset-0 flex flex-wrap justify-between p-6 sm:p-10 opacity-60 text-[11px] font-mono text-neutral-400">
-          {[...Array(28)].map((_, i) => (
-            <span key={i} className="inline-block p-3 select-none">+</span>
-          ))}
-        </div>
+    <div className="min-h-screen bg-[var(--app-bg-subtle,#f9fafb)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      {/* Brand Header */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <Link to="/" className="inline-flex items-center gap-2 mb-3 group">
+          <div className="w-8 h-8 rounded-lg bg-[var(--app-brand-red,#ff3b30)] flex items-center justify-center text-white font-black text-sm shadow-sm">
+            D
+          </div>
+          <span className="font-display font-black text-lg tracking-tight text-[var(--app-text-primary,#111111)]">
+            DEALFLOW<span className="text-[var(--app-brand-red,#ff3b30)]">360</span>
+          </span>
+        </Link>
+        <h2 className="font-display font-black text-2xl tracking-tight text-[var(--app-text-primary,#111111)]">
+          Sign In
+        </h2>
       </div>
 
-      {/* ========================================================================= */}
-      {/* LEFT HALF: High-Tech Telemetry Photo & Brand Showcase                     */}
-      {/* ========================================================================= */}
-      <div className="relative lg:w-1/2 w-full min-h-[380px] lg:min-h-screen bg-[#09090b]/80 backdrop-blur-sm flex flex-col justify-between p-6 sm:p-10 lg:p-14 overflow-hidden border-b lg:border-b-0 lg:border-r border-neutral-800 z-10">
-        {/* Background Image with Cinematic Grading & Vignette */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1600&auto=format&fit=crop"
-            alt="Sales Operations Telemetry"
-            className="w-full h-full object-cover object-center filter grayscale contrast-125 opacity-25 scale-105 transition-transform duration-1000 ease-out"
-          />
-          {/* Duotone Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
-        </div>
-
-        {/* Top Header on Left Panel */}
-        <div className="relative z-10 flex items-center justify-between">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono tracking-wider text-neutral-300 hover:text-white transition-all group backdrop-blur-md"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform text-[#ff3b30]" />
-            <span>BACK TO OVERVIEW</span>
-          </Link>
-
-          <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span>NODE // LIVE</span>
-          </div>
-        </div>
-
-        {/* Center Telemetry & Visual Graphic */}
-        <div className="relative z-10 my-auto py-8 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900/90 border border-neutral-800 text-[10px] font-mono font-bold tracking-widest text-[#ff3b30] uppercase">
-            AUTONOMOUS QUOTE-TO-CASH
-          </div>
-
-          <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-white uppercase tracking-tight leading-[1.05]">
-            INTELLIGENT SALES <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-cyan-400">
-              OPERATIONS MATRIX
-            </span>
-          </h1>
-
-          <p className="text-xs sm:text-sm text-neutral-400 font-mono max-w-md leading-relaxed">
-            Multi-tier discount governance, stock-aware warehouse fulfillment, hybrid subscription billing, and real-time portal negotiations.
-          </p>
-
-          {/* Floating Telemetry Chips */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 max-w-lg">
-            <div className="p-3.5 rounded-2xl bg-[#09090b]/90 border border-neutral-800 backdrop-blur-md space-y-1 shadow-lg">
-              <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 uppercase">
-                <span className="flex items-center gap-1.5 text-cyan-400">
-                  <Cpu className="w-3 h-3" />
-                  <span>Blended Risk</span>
-                </span>
-                <span className="text-emerald-400 font-bold">0.00% LEAK</span>
-              </div>
-              <div className="text-xs font-semibold text-white font-mono">Real-Time Margin Guard</div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-[#09090b]/90 border border-neutral-800 backdrop-blur-md space-y-1 shadow-lg">
-              <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 uppercase">
-                <span className="flex items-center gap-1.5 text-[#ff3b30]">
-                  <Activity className="w-3 h-3" />
-                  <span>Dual Depots</span>
-                </span>
-                <span className="text-cyan-400 font-bold">AUTO-SPLIT</span>
-              </div>
-              <div className="text-xs font-semibold text-white font-mono">Stock-Aware Dispatch</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Metadata on Left Panel */}
-        <div className="relative z-10 pt-4 border-t border-neutral-800 flex flex-wrap items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider gap-2">
-          <span>SECURE POSTGRES RLS SESSION</span>
-          <span className="text-neutral-400">DEALFLOW360 &bull; ENTERPRISE 2026</span>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* RIGHT HALF: Interactive Dual-Role Login Interface                         */}
-      {/* ========================================================================= */}
-      <div className="lg:w-1/2 w-full flex items-center justify-center p-6 sm:p-10 lg:p-14 relative z-10">
-        {/* Subtle background glow */}
-        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-[#ff3b30]/5 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="w-full max-w-md space-y-6 relative z-10 rounded-3xl border border-neutral-800 bg-[#09090b]/95 p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
-          {/* Header */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#ff3b30] to-rose-700 flex items-center justify-center shadow-[0_0_15px_rgba(255,59,48,0.3)]">
-                <Lock className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-display font-black text-sm uppercase tracking-wider text-white">
-                DEALFLOW<span className="text-[#ff3b30]">360</span>
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">
-                // GATEWAY
-              </span>
-            </div>
-            <h2 className="font-display font-black text-2xl sm:text-3xl text-white uppercase tracking-tight">
-              ACCESS PORTAL
-            </h2>
-            <p className="text-xs text-neutral-400 font-mono mt-1">
-              Select your organization identity to authenticate into DealFlow360.
-            </p>
-          </div>
-
-          {/* ===================================================================== */}
-          {/* DUAL IDENTITY SELECTOR: Company Member vs Customer                   */}
-          {/* ===================================================================== */}
-          <div className="grid grid-cols-2 gap-2 bg-neutral-900/90 p-1.5 rounded-2xl border border-white/10 shadow-inner">
-            {/* Option 1: Member of Company */}
+      {/* Main Card */}
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="app-card bg-white border border-[var(--app-border,#e5e7eb)] rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
+          {/* Role Switcher */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-[var(--app-bg-muted,#f3f4f6)] rounded-xl border border-[var(--app-border-subtle,#f3f4f6)] text-xs font-mono">
             <button
               type="button"
               onClick={() => {
@@ -296,20 +164,15 @@ export const LoginPage: React.FC = () => {
                 setError(null);
                 setFeedback(null);
               }}
-              className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl transition-all font-mono text-xs cursor-pointer ${
+              className={`py-2 px-3 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 loginType === 'member'
-                  ? 'bg-gradient-to-r from-[#ff3b30] to-rose-600 text-white font-bold shadow-lg shadow-[#ff3b30]/25'
-                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-[var(--app-text-primary,#111111)] shadow-xs'
+                  : 'text-[var(--app-text-muted,#6b7280)] hover:text-[var(--app-text-primary,#111111)]'
               }`}
             >
-              <Users className="w-4 h-4 shrink-0" />
-              <div className="text-left">
-                <div className="text-xs font-bold leading-none">Company Member</div>
-                <div className="text-[9px] opacity-75 leading-tight mt-0.5">Staff & Sales Ops</div>
-              </div>
+              <Users className="w-3.5 h-3.5" />
+              <span>Company Member</span>
             </button>
-
-            {/* Option 2: Customer */}
             <button
               type="button"
               onClick={() => {
@@ -317,48 +180,39 @@ export const LoginPage: React.FC = () => {
                 setError(null);
                 setFeedback(null);
               }}
-              className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl transition-all font-mono text-xs cursor-pointer ${
+              className={`py-2 px-3 rounded-lg font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                 loginType === 'customer'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-lg shadow-cyan-500/25'
-                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-white text-[var(--app-text-primary,#111111)] shadow-xs'
+                  : 'text-[var(--app-text-muted,#6b7280)] hover:text-[var(--app-text-primary,#111111)]'
               }`}
             >
-              <Building2 className="w-4 h-4 shrink-0" />
-              <div className="text-left">
-                <div className="text-xs font-bold leading-none">Customer Portal</div>
-                <div className="text-[9px] opacity-75 leading-tight mt-0.5">Client Accounts</div>
-              </div>
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Customer Portal</span>
             </button>
           </div>
 
-          {/* Error Banner */}
+          {/* Error Alert */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-start gap-2.5 animate-fadeIn">
+            <div className="app-alert-error p-3 rounded-xl flex items-start gap-2.5 text-xs font-mono">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Success / Feedback Banner */}
+          {/* Feedback Alert */}
           {feedback && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-start gap-2.5 animate-fadeIn">
+            <div className="app-alert-success p-3 rounded-xl flex items-start gap-2.5 text-xs font-mono">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{feedback}</span>
             </div>
           )}
 
-          {/* ===================================================================== */}
-          {/* LOGIN FORM                                                           */}
-          {/* ===================================================================== */}
+          {/* Credentials Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email Field */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase">
-                  {loginType === 'member' ? 'Corporate Email' : 'Authorized Account Email'}
-                </label>
-                <span className="text-[9px] font-mono text-neutral-500">REQUIRED</span>
-              </div>
+              <label className="app-label">
+                {loginType === 'member' ? 'Corporate Email' : 'Account Email'}
+              </label>
               <div className="relative">
                 <input
                   type="email"
@@ -366,21 +220,15 @@ export const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={loginType === 'member' ? 'rep@acme.com' : 'bruce@wayne.com'}
-                  className="w-full bg-neutral-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] transition-colors font-mono"
+                  className="app-input pr-10"
                 />
-                <Mail className="w-4 h-4 text-neutral-500 absolute right-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-[var(--app-text-subtle,#9ca3af)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
-            {/* Password Field (when not using Magic Link) */}
             {(!useMagicLink || loginType === 'member') && (
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase">
-                    Security Password
-                  </label>
-                  <span className="text-[9px] font-mono text-neutral-500">ENCRYPTED ARGON2</span>
-                </div>
+                <label className="app-label">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -388,13 +236,12 @@ export const LoginPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full bg-neutral-900/90 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#ff3b30] focus:ring-1 focus:ring-[#ff3b30] transition-colors font-mono pr-10"
+                    className="app-input pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-neutral-500 hover:text-neutral-300 transition-colors"
-                    title={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--app-text-subtle,#9ca3af)] hover:text-[var(--app-text-secondary,#374151)] cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -404,61 +251,49 @@ export const LoginPage: React.FC = () => {
 
             {/* Customer Magic Link Switcher */}
             {loginType === 'customer' && (
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs font-mono pt-0.5">
                 <button
                   type="button"
                   onClick={() => {
                     setUseMagicLink(!useMagicLink);
                     setError(null);
                   }}
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 text-[11px] font-mono"
+                  className="text-[var(--app-brand-red,#ff3b30)] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <Sparkles className="w-3 h-3" />
                   <span>{useMagicLink ? 'Sign in with Password instead' : 'Use Passwordless Magic Link'}</span>
                 </button>
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting || loading}
-              className={`w-full py-3.5 px-6 rounded-xl font-display font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                loginType === 'member'
-                  ? 'bg-gradient-to-r from-[#ff3b30] to-rose-600 hover:from-[#ff4d42] hover:to-rose-500 text-white shadow-[#ff3b30]/20'
-                  : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20'
-              }`}
+              className="btn btn-primary w-full py-2.5 text-xs font-bold"
             >
               {isSubmitting || loading ? (
-                <div className="flex items-center gap-2 font-mono text-xs">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>AUTHENTICATING NODE...</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Signing in...</span>
                 </div>
               ) : (
-                <>
-                  <span>
-                    {useMagicLink && loginType === 'customer'
-                      ? 'SEND ONE-TIME MAGIC LINK'
-                      : loginType === 'member'
-                      ? 'SIGN IN AS COMPANY MEMBER'
-                      : 'SIGN IN TO CUSTOMER PORTAL'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <span>
+                  {useMagicLink && loginType === 'customer'
+                    ? 'Send Magic Link'
+                    : 'Sign In'}
+                </span>
               )}
             </button>
           </form>
 
-          {/* ===================================================================== */}
-          {/* QUICK LOGIN BUTTONS (ADMIN, MANAGER, SALES REP, CUSTOMER)            */}
-          {/* ===================================================================== */}
-          <div className="pt-4 border-t border-neutral-800 space-y-2.5">
+          {/* Quick Demo Logins Section */}
+          <div className="pt-4 border-t border-[var(--app-border,#e5e7eb)] space-y-2.5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
-                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 animate-pulse" />
-                <span className="font-semibold text-neutral-300">Quick Demo Logins</span>
+              <div className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--app-text-muted,#6b7280)]">
+                <Zap className="w-3 h-3 text-amber-500 fill-amber-500/20" />
+                <span>Quick Demo Logins</span>
               </div>
-              <span className="text-[9px] font-mono text-neutral-500 bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded-full">
+              <span className="text-[9px] font-mono text-[var(--app-text-subtle,#9ca3af)]">
                 1-Click Sign In
               </span>
             </div>
@@ -467,63 +302,45 @@ export const LoginPage: React.FC = () => {
               {QUICK_ACCOUNTS.map((acc) => {
                 const Icon = acc.icon;
                 const isLoggingInThis = quickLoadingRole === acc.key;
-                const isDisabled = isSubmitting || loading;
-
                 return (
                   <button
                     key={acc.key}
                     type="button"
-                    disabled={isDisabled}
+                    disabled={isSubmitting || loading}
                     onClick={() => handleQuickLogin(acc.key, acc.type, acc.email)}
-                    title={`Click to instantly sign in as ${acc.name} (${acc.roleLabel})`}
-                    className={`group relative p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden ${acc.borderClass}`}
+                    className="group relative p-2.5 rounded-xl border border-[var(--app-border,#e5e7eb)] hover:border-[var(--app-brand-red,#ff3b30)] hover:bg-[var(--app-brand-red-subtle,#fef2f2)] bg-white text-left transition-all cursor-pointer disabled:opacity-50 text-xs font-mono"
                   >
-                    {/* Active Loading Overlay */}
                     {isLoggingInThis && (
-                      <div className="absolute inset-0 bg-[#09090b]/90 backdrop-blur-xs flex items-center justify-center gap-1.5 z-10">
-                        <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                        <span className="text-[10px] font-mono text-white">Signing in...</span>
+                      <div className="absolute inset-0 bg-white/90 flex items-center justify-center gap-1 z-10 rounded-xl">
+                        <div className="w-3 h-3 border-2 border-neutral-300 border-t-[var(--app-brand-red,#ff3b30)] rounded-full animate-spin" />
                       </div>
                     )}
-
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${acc.iconColor}`} />
-                        <span className="font-display font-black text-xs uppercase tracking-tight text-white">
-                          {acc.roleLabel}
-                        </span>
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <div className="flex items-center gap-1 font-bold text-[var(--app-text-primary,#111111)]">
+                        <Icon className="w-3 h-3 text-[var(--app-brand-red,#ff3b30)]" />
+                        <span>{acc.roleLabel}</span>
                       </div>
-                      <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border font-semibold tracking-wider uppercase ${acc.badgeClass}`}>
+                      <span className="text-[8px] px-1 py-0.5 rounded font-semibold uppercase bg-neutral-100 text-neutral-600 border border-neutral-200">
                         {acc.badgeText}
                       </span>
                     </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 pr-1">
-                        <div className="text-[11px] font-medium text-neutral-200 truncate font-mono">
-                          {acc.name}
-                        </div>
-                        <div className="text-[9px] text-neutral-500 font-mono truncate group-hover:text-neutral-400 transition-colors">
-                          {acc.email}
-                        </div>
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                    <div className="text-[10px] text-[var(--app-text-muted,#6b7280)] truncate">
+                      {acc.email}
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            {/* Additional Seed Accounts quick switcher */}
-            <div className="flex items-center justify-between pt-1 px-1 text-[10px] font-mono text-neutral-500">
-              <span>More roles:</span>
+            {/* Additional Accounts */}
+            <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-[var(--app-text-muted,#6b7280)]">
+              <span>More:</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={isSubmitting || loading}
                   onClick={() => handleQuickLogin('tony', 'customer', 'tony@stark.com')}
-                  className="hover:text-cyan-400 hover:underline transition-colors cursor-pointer"
-                  title="Tony Stark (Stark Industries - Platinum Customer)"
+                  className="hover:text-[var(--app-brand-red,#ff3b30)] hover:underline cursor-pointer"
                 >
                   Tony Stark (Platinum)
                 </button>
@@ -532,8 +349,7 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   disabled={isSubmitting || loading}
                   onClick={() => handleQuickLogin('finance', 'member', 'finance@acme.com')}
-                  className="hover:text-rose-400 hover:underline transition-colors cursor-pointer"
-                  title="Frank Finance (Finance Ops)"
+                  className="hover:text-[var(--app-brand-red,#ff3b30)] hover:underline cursor-pointer"
                 >
                   Frank Finance
                 </button>
@@ -541,16 +357,27 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* New Company Onboarding Link */}
-          <div className="pt-4 border-t border-neutral-800 text-center font-mono text-xs">
-            <span className="text-neutral-400">Need to register a new organization? </span>
+          {/* Footer Link to Sign Up */}
+          <div className="pt-2 text-center text-xs font-mono text-[var(--app-text-muted,#6b7280)]">
+            <span>Don't have an account? </span>
             <Link
               to="/signup"
-              className="text-[#ff3b30] hover:text-red-400 font-bold hover:underline inline-flex items-center gap-1 ml-1"
+              className="text-[var(--app-brand-red,#ff3b30)] font-bold hover:underline ml-1"
             >
               Create Workspace &rarr;
             </Link>
           </div>
+        </div>
+
+        {/* Back Link */}
+        <div className="mt-4 text-center">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-xs font-mono text-[var(--app-text-muted,#6b7280)] hover:text-[var(--app-text-primary,#111111)] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Overview</span>
+          </Link>
         </div>
       </div>
     </div>

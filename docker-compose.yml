@@ -7,6 +7,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/assets:/usr/share/nginx/html/assets:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

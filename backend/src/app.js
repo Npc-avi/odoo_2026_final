@@ -5,8 +5,13 @@ import morgan from 'morgan';
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { redisClient } from './config/redis.js';
 import { pool } from './config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { authRateLimiter } from './middleware/rate-limit.middleware.js';
 import { metricsMiddleware, getMetricsHandler } from './middleware/metrics.middleware.js';
 import { lokiLoggerMiddleware } from './middleware/loki.middleware.js';
@@ -96,6 +101,7 @@ app.use(
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(cookieParser());
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ----------------------------------------------------------------------------
 // 4. Redis-Backed Session Layer (30-day Rolling TTL - Persistent & Seamless)
