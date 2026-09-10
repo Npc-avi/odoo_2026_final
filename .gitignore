@@ -54,3 +54,9 @@ Thumbs.db
 *.sln
 *.sw?
 .vscode
+
+# Redis data directory
+redis-data/*
+!redis-data/.gitkeep
+*.rdb
+*.aof
