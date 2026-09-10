@@ -17,7 +17,10 @@ import {
   AlertTriangle,
   Lock,
   Activity,
-  Cpu
+  Cpu,
+  Zap,
+  Briefcase,
+  Crown
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -39,6 +42,87 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quickLoadingRole, setQuickLoadingRole] = useState<string | null>(null);
+
+  const QUICK_ACCOUNTS = [
+    {
+      key: 'admin',
+      type: 'member' as const,
+      roleLabel: 'Admin',
+      name: 'Alice Admin',
+      email: 'admin@acme.com',
+      badgeText: 'FULL ACCESS',
+      badgeClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      borderClass: 'border-neutral-800 hover:border-rose-500/60 bg-neutral-900/60 hover:bg-rose-500/[0.06]',
+      iconColor: 'text-rose-400',
+      icon: Crown,
+    },
+    {
+      key: 'manager',
+      type: 'member' as const,
+      roleLabel: 'Manager',
+      name: 'Mark Manager',
+      email: 'manager@acme.com',
+      badgeText: 'APPROVALS',
+      badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      borderClass: 'border-neutral-800 hover:border-amber-500/60 bg-neutral-900/60 hover:bg-amber-500/[0.06]',
+      iconColor: 'text-amber-400',
+      icon: Briefcase,
+    },
+    {
+      key: 'rep',
+      type: 'member' as const,
+      roleLabel: 'Sales Rep',
+      name: 'Rachel Rep',
+      email: 'rep@acme.com',
+      badgeText: 'QUOTES & RFQ',
+      badgeClass: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+      borderClass: 'border-neutral-800 hover:border-blue-500/60 bg-neutral-900/60 hover:bg-blue-500/[0.06]',
+      iconColor: 'text-blue-400',
+      icon: Users,
+    },
+    {
+      key: 'customer',
+      type: 'customer' as const,
+      roleLabel: 'Customer',
+      name: 'Bruce Wayne',
+      email: 'bruce@wayne.com',
+      badgeText: 'GOLD TIER',
+      badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      borderClass: 'border-neutral-800 hover:border-emerald-500/60 bg-neutral-900/60 hover:bg-emerald-500/[0.06]',
+      iconColor: 'text-emerald-400',
+      icon: Building2,
+    },
+  ];
+
+  const handleQuickLogin = async (
+    roleKey: string,
+    type: 'member' | 'customer',
+    quickEmail: string,
+    quickPassword: string = 'Password123!'
+  ) => {
+    setError(null);
+    setFeedback(null);
+    setQuickLoadingRole(roleKey);
+    setLoginType(type);
+    setEmail(quickEmail);
+    setPassword(quickPassword);
+    setUseMagicLink(false);
+
+    try {
+      if (type === 'member') {
+        await loginStaff({ email: quickEmail, password: quickPassword });
+        navigate('/dashboard');
+      } else {
+        await loginPortal({ email: quickEmail, password: quickPassword });
+        navigate('/portal');
+      }
+    } catch (err: any) {
+      setError(err.message || `Quick login for ${quickEmail} failed.`);
+    } finally {
+      setQuickLoadingRole(null);
+    }
+  };
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -365,6 +449,97 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
+          {/* ===================================================================== */}
+          {/* QUICK LOGIN BUTTONS (ADMIN, MANAGER, SALES REP, CUSTOMER)            */}
+          {/* ===================================================================== */}
+          <div className="pt-4 border-t border-neutral-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20 animate-pulse" />
+                <span className="font-semibold text-neutral-300">Quick Demo Logins</span>
+              </div>
+              <span className="text-[9px] font-mono text-neutral-500 bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded-full">
+                1-Click Sign In
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {QUICK_ACCOUNTS.map((acc) => {
+                const Icon = acc.icon;
+                const isLoggingInThis = quickLoadingRole === acc.key;
+                const isDisabled = isSubmitting || loading;
+
+                return (
+                  <button
+                    key={acc.key}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => handleQuickLogin(acc.key, acc.type, acc.email)}
+                    title={`Click to instantly sign in as ${acc.name} (${acc.roleLabel})`}
+                    className={`group relative p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden ${acc.borderClass}`}
+                  >
+                    {/* Active Loading Overlay */}
+                    {isLoggingInThis && (
+                      <div className="absolute inset-0 bg-[#09090b]/90 backdrop-blur-xs flex items-center justify-center gap-1.5 z-10">
+                        <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span className="text-[10px] font-mono text-white">Signing in...</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${acc.iconColor}`} />
+                        <span className="font-display font-black text-xs uppercase tracking-tight text-white">
+                          {acc.roleLabel}
+                        </span>
+                      </div>
+                      <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border font-semibold tracking-wider uppercase ${acc.badgeClass}`}>
+                        {acc.badgeText}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 pr-1">
+                        <div className="text-[11px] font-medium text-neutral-200 truncate font-mono">
+                          {acc.name}
+                        </div>
+                        <div className="text-[9px] text-neutral-500 font-mono truncate group-hover:text-neutral-400 transition-colors">
+                          {acc.email}
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Additional Seed Accounts quick switcher */}
+            <div className="flex items-center justify-between pt-1 px-1 text-[10px] font-mono text-neutral-500">
+              <span>More roles:</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting || loading}
+                  onClick={() => handleQuickLogin('tony', 'customer', 'tony@stark.com')}
+                  className="hover:text-cyan-400 hover:underline transition-colors cursor-pointer"
+                  title="Tony Stark (Stark Industries - Platinum Customer)"
+                >
+                  Tony Stark (Platinum)
+                </button>
+                <span>&bull;</span>
+                <button
+                  type="button"
+                  disabled={isSubmitting || loading}
+                  onClick={() => handleQuickLogin('finance', 'member', 'finance@acme.com')}
+                  className="hover:text-rose-400 hover:underline transition-colors cursor-pointer"
+                  title="Frank Finance (Finance Ops)"
+                >
+                  Frank Finance
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* New Company Onboarding Link */}
           <div className="pt-4 border-t border-neutral-800 text-center font-mono text-xs">

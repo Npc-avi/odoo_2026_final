@@ -425,7 +425,7 @@ async function runSeed() {
     // Q-1088: In Fulfillment with live tracking & warehouse shipments
     const q1088 = await client.query(`
       INSERT INTO quotations (tenant_id, quotation_code, customer_id, assigned_rep_id, status, subtotal_amount, total_amount, total_cost, total_margin_pct, blended_risk_score, promised_delivery_date)
-      VALUES ($1, 'QT-1088', $2, $3, 'in_fulfillment', 14400.00, 15552.00, 9600.00, 33.33, 0.00, CURRENT_DATE + 5)
+      VALUES ($1, 'QT-1088', $2, $3, 'confirmed', 14400.00, 15552.00, 9600.00, 33.33, 0.00, CURRENT_DATE + 5)
       RETURNING id;
     `, [acmeTenant.id, wayneCustomer.id, salesRep.id]);
     const q1088Id = q1088.rows[0].id;
@@ -439,6 +439,10 @@ async function runSeed() {
       VALUES ($1, $2, $3, 'hardware', 16, 150.00, 0.00, 150.00, 2400.00, 75.00, 1200.00)
       RETURNING id;
     `, [acmeTenant.id, q1088Id, dockProd.id]);
+
+    await client.query(`
+      UPDATE quotations SET status = 'in_fulfillment' WHERE id = $1;
+    `, [q1088Id]);
 
     // --------------------------------------------------------------------------
     // 14. SHIPMENT ORDERS (Fulfillment testing)

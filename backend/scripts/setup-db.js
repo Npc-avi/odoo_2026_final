@@ -49,7 +49,35 @@ async function setupDatabase() {
       GRANT app_role_staff TO postgres;
       GRANT app_role_customer_portal TO postgres;
       GRANT CONNECT ON DATABASE "${currentDb}" TO dealflow_app_user;
-      GRANT USAGE ON SCHEMA public TO dealflow_app_user;
+      GRANT ALL ON SCHEMA public TO dealflow_app_user;
+      GRANT CREATE ON SCHEMA public TO dealflow_app_user;
+      GRANT ALL ON ALL TABLES IN SCHEMA public TO dealflow_app_user;
+      GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO dealflow_app_user;
+      GRANT ALL ON ALL ROUTINES IN SCHEMA public TO dealflow_app_user;
+      ALTER TYPE quote_status OWNER TO dealflow_app_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO dealflow_app_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO dealflow_app_user;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO dealflow_app_user;
+
+      DO $$
+      DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+          EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO dealflow_app_user';
+        END LOOP;
+        FOR r IN (SELECT typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE n.nspname = 'public' AND t.typtype = 'e') LOOP
+          EXECUTE 'ALTER TYPE public.' || quote_ident(r.typname) || ' OWNER TO dealflow_app_user';
+        END LOOP;
+        FOR r IN (
+          SELECT p.proname, pg_get_function_identity_arguments(p.oid) as args
+          FROM pg_proc p
+          JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public'
+        ) LOOP
+          EXECUTE 'ALTER ROUTINE public.' || quote_ident(r.proname) || '(' || r.args || ') OWNER TO dealflow_app_user';
+        END LOOP;
+      END $$;
     `);
 
     console.log('====================================================');
