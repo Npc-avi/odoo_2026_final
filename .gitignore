@@ -61,6 +61,3 @@ redis-data/*
 *.rdb
 *.aof
 
-#logo
-deal_flow_logo.png
-deal_flow.png

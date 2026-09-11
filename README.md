@@ -1,22 +1,24 @@
+<div align="center">
+
 # 🚀 DealFlow 360 — B2B Sales Operations & Quote-to-Cash Platform
 
-<p align="center">
-  <img src="./deal_flow_logo.png" alt="DealFlow 360 Logo" width="160" />
-</p>
+<img src="./deal_flow.png" alt="DealFlow 360" width="300" />
 
-<p align="center">
-  <strong>Enterprise-Grade Multi-Tenant B2B Sales Operations, Quote-to-Cash (QTC), & Deal Execution Engine</strong>
-</p>
+<br />
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Frontend-React%2019%20%7C%20TypeScript%20%7C%20Vite%206-blue?style=flat-square" alt="Frontend Stack" />
-  <img src="https://img.shields.io/badge/Backend-Node.js%20(ESM)%20%7C%20Express-green?style=flat-square" alt="Backend Stack" />
-  <img src="https://img.shields.io/badge/Database-PostgreSQL%2016%20(Native%20RLS)-336791?style=flat-square" alt="Database" />
-  <img src="https://img.shields.io/badge/Cache%20%26%20Queues-Redis%20Stack%20%7C%20BullMQ-red?style=flat-square" alt="Redis Stack" />
-  <img src="https://img.shields.io/badge/Observability-Prometheus%20%7C%20Loki%20%7C%20Grafana-orange?style=flat-square" alt="Observability" />
-  <img src="https://img.shields.io/badge/Reverse%20Proxy-Nginx%20Alpine-009639?style=flat-square" alt="Nginx" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License: MIT" />
-</p>
+**Enterprise-Grade Multi-Tenant B2B Sales Operations, Quote-to-Cash (QTC), & Deal Execution Engine**
+
+<br />
+
+[![Frontend Stack](https://img.shields.io/badge/Frontend-React%2019%20%7C%20TypeScript%20%7C%20Vite%206-blue?style=flat-square)](#1-frontend-architecture--client-stack)
+[![Backend Stack](https://img.shields.io/badge/Backend-Node.js%20(ESM)%20%7C%20Express-green?style=flat-square)](#2-backend-services--application-layer)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%2016%20(Native%20RLS)-336791?style=flat-square)](#3-database-engine-row-level-security--logic)
+[![Redis Stack](https://img.shields.io/badge/Cache%20%26%20Queues-Redis%20Stack%20%7C%20BullMQ-red?style=flat-square)](#2-backend-services--application-layer)
+[![Observability](https://img.shields.io/badge/Observability-Prometheus%20%7C%20Loki%20%7C%20Grafana-orange?style=flat-square)](#4-devops-infrastructure--observability-suite)
+[![Nginx](https://img.shields.io/badge/Reverse%20Proxy-Nginx%20Alpine-009639?style=flat-square)](#4-devops-infrastructure--observability-suite)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
+</div>
 
 ---
 
