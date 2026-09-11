@@ -20,7 +20,7 @@
     "sales-operations"
   ],
   "author": "DealFlow 360 Architecture Team",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "argon2": "^0.41.1",
     "bullmq": "^6.3.4",
